@@ -1,0 +1,150 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// Japanese (Japan) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_JPN)
+LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT
+#pragma code_page(932)
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+#endif    // Japanese (Japan) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// English (United Kingdom) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENG)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_UK
+#pragma code_page(1252)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_CONFIG DIALOGEX 0, 0, 397, 170
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_COMPOSITED
+CAPTION "Vision Device Source"
+FONT 8, "MS Shell Dlg", 400, 0, 0x0
+BEGIN
+    GROUPBOX        "Input",IDC_STATIC,6,3,174,141,WS_GROUP
+    LTEXT           "Port",IDC_STATIC,18,21,14,8
+    COMBOBOX        IDC_INPUTSOURCE,39,19,27,40,CBS_DROPDOWNLIST | CBS_SORT | CBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    GROUPBOX        "Picture Adjustment",IDC_CAPTSETTINGS,186,3,205,153,WS_GROUP
+    LTEXT           "Width",IDC_ADDRWIDTHSTATIC,18,59,20,8
+    EDITTEXT        IDC_ADDRWIDTH,42,57,44,14,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "Spin1",IDC_ADDRWIDTHSPIN,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS | UDS_NOTHOUSANDS,86,57,11,14
+    LTEXT           "Height",IDC_ADDRHEIGHTSTATIC,96,59,22,8
+    EDITTEXT        IDC_ADDRHEIGHT,120,57,44,14,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "Spin2",IDC_ADDRHEIGHTSPIN,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS | UDS_NOTHOUSANDS,163,57,11,14
+    LTEXT           "Horizontal Position",IDC_HOROFFSETSTATIC,192,18,59,8,WS_DISABLED
+    SCROLLBAR       IDC_HOROFFSET,258,14,97,14,WS_DISABLED | WS_TABSTOP
+    LTEXT           "Horizontal Size",IDC_HORSCALESTATIC,192,35,48,8,WS_DISABLED
+    SCROLLBAR       IDC_HORSCALE,258,32,97,14,WS_DISABLED | WS_TABSTOP
+    LTEXT           "Phase",IDC_PHASESTATIC,192,53,21,8,WS_DISABLED
+    SCROLLBAR       IDC_PHASE,258,50,97,14,WS_DISABLED | WS_TABSTOP
+    LTEXT           "Vertical Position",IDC_VEROFFSETSTATIC,192,71,51,8,WS_DISABLED
+    SCROLLBAR       IDC_VEROFFSET,258,68,97,14,WS_DISABLED | WS_TABSTOP
+    LTEXT           "Black Level",IDC_BLACKLEVELSTATIC,192,89,38,8,WS_DISABLED
+    SCROLLBAR       IDC_BLACKLEVEL,258,86,97,14,WS_DISABLED | WS_TABSTOP
+    LTEXT           "Brightness",IDC_BRIGHTNESSSTATIC,192,107,40,8,WS_DISABLED
+    SCROLLBAR       IDC_BRIGHTNESS,258,104,97,14,WS_DISABLED | WS_TABSTOP
+    LTEXT           "Contrast",IDC_CONTRASTSTATIC,192,125,40,8,WS_DISABLED
+    SCROLLBAR       IDC_CONTRAST,258,122,97,14,WS_DISABLED | WS_TABSTOP
+    LTEXT           "Top",IDC_TOPSTATIC,18,98,14,8
+    EDITTEXT        IDC_TOP,42,96,44,14,ES_AUTOHSCROLL
+    CONTROL         "Spin1",IDC_TOPSPIN,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS | UDS_NOTHOUSANDS,79,96,11,14
+    LTEXT           "Left",IDC_LEFTSTATIC,18,122,13,8
+    EDITTEXT        IDC_LEFT,42,120,44,14,ES_AUTOHSCROLL
+    CONTROL         "Spin1",IDC_LEFTSPIN,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS | UDS_NOTHOUSANDS,80,120,11,14
+    LTEXT           "Width",IDC_WIDTHSTATIC,96,98,22,8
+    EDITTEXT        IDC_WIDTH,120,96,44,14,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "Spin1",IDC_WIDTHSPIN,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS | UDS_NOTHOUSANDS,157,96,11,14
+    LTEXT           "Height",IDC_HEIGHTSTATIC,96,122,22,8
+    EDITTEXT        IDC_HEIGHT,120,120,44,14,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "Spin1",IDC_HEIGHTSPIN,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS | UDS_NOTHOUSANDS,157,121,11,14
+    PUSHBUTTON      "Default",IDC_RESET,336,138,50,14,WS_DISABLED
+    PUSHBUTTON      "OK",IDOK,6,150,50,14
+    LTEXT           "",IDC_DETECTEDMODE,72,17,96,18
+    CONTROL         "Custom resolution",IDC_CUSTOMRES,"Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,18,39,73,10
+    EDITTEXT        IDC_HOROFFSETVALUE,361,14,24,14,ES_AUTOHSCROLL | WS_DISABLED
+    EDITTEXT        IDC_HORSCALEVALUE,361,32,24,14,ES_AUTOHSCROLL | WS_DISABLED
+    EDITTEXT        IDC_PHASEVALUE,361,50,24,14,ES_AUTOHSCROLL | WS_DISABLED
+    EDITTEXT        IDC_VEROFFSETVALUE,361,68,24,14,ES_AUTOHSCROLL | WS_DISABLED
+    EDITTEXT        IDC_BLACKLEVELVALUE,361,86,24,14,ES_AUTOHSCROLL | WS_DISABLED
+    EDITTEXT        IDC_BRIGHTNESSVALUE,361,104,24,14,ES_AUTOHSCROLL | WS_DISABLED
+    EDITTEXT        IDC_CONTRASTVALUE,361,122,24,14,ES_AUTOHSCROLL | WS_DISABLED
+    CONTROL         "Crop",IDC_CROPPING,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,78,31,10
+    PUSHBUTTON      "Cancel",IDCANCEL,60,150,50,14
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_CONFIG, DIALOG
+    BEGIN
+        RIGHTMARGIN, 396
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+#endif    // English (United Kingdom) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
