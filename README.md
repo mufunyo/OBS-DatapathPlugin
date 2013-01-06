@@ -11,15 +11,15 @@ This is a native capture plugin leveraging the RGBEasy API instead of DirectShow
 
 It has so far only been tested with the VisionRGB-E2s, but it should be compatible with the following cards:
 
-Datapath VisionAV / EMS XtremeRGB-Hdv2
-Datapath VisionDVI-DL / EMS XtremeDVI-DualLink
-Datapath VisionRGB-E1s / EMS XtremeRGB-Ex1
-Datapath VisionRGB-E2s / EMS XtremeRGB-Ex2
-Datapath VisionRGB-PRO2 / EMS PhynxRGB
-Datapath VisionRGB-X2 / EMS XtremeRGB-II
-Datapath VisionSD4+1S / EMS XtremeRGB-Ex4+
-Datapath VisionSD8 / EMS XtremeRGB-Ex8
-Datapath VisionSDI2 / EMS XtremeSDI-2
+Datapath VisionAV / EMS XtremeRGB-Hdv2  
+Datapath VisionDVI-DL / EMS XtremeDVI-DualLink  
+Datapath VisionRGB-E1s / EMS XtremeRGB-Ex1  
+Datapath VisionRGB-E2s / EMS XtremeRGB-Ex2  
+Datapath VisionRGB-PRO2 / EMS PhynxRGB  
+Datapath VisionRGB-X2 / EMS XtremeRGB-II  
+Datapath VisionSD4+1S / EMS XtremeRGB-Ex4+  
+Datapath VisionSD8 / EMS XtremeRGB-Ex8  
+Datapath VisionSDI2 / EMS XtremeSDI-2  
 
 Implemented features:
 - Video capture (yay!)
