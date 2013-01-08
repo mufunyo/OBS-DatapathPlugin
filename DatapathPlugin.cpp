@@ -161,7 +161,7 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 					SendMessage (GetDlgItem(hwnd, IDC_INPUTSOURCE), CB_ADDSTRING, (WPARAM)0, (LPARAM)&text);
 					SendMessage (GetDlgItem(hwnd, IDC_INPUTSOURCE), CB_SETITEMDATA , i, (LPARAM)i);
 				}
-				SendMessage(GetDlgItem(hwnd, IDC_INPUTSOURCE), CB_SETCURSEL, 0, 0);
+				SendMessage(GetDlgItem(hwnd, IDC_INPUTSOURCE), CB_SETCURSEL, input, 0);
 
 				int width = configInfo->data->GetInt(TEXT("resolutionWidth"), (int)widthCur);
 				int height = configInfo->data->GetInt(TEXT("resolutionHeight"), (int)heightCur);
@@ -236,6 +236,11 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
                         configInfo->data->SetString(TEXT("path"), strBitmap);
 						*/
                         BOOL bFailed;
+						
+						int input = (int)SendMessage(GetDlgItem(hwnd, IDC_INPUTSOURCE), CB_GETCURSEL, 0, 0);
+						// TODO: check input
+                        configInfo->data->SetInt(TEXT("input"), input);
+
                         int width = (int)SendMessage(GetDlgItem(hwnd, IDC_ADDRWIDTHSPIN), UDM_GETPOS32, 0, (LPARAM)&bFailed);
 						// TODO: check input
                         configInfo->data->SetInt(TEXT("resolutionWidth"), bFailed ? 640 : width);

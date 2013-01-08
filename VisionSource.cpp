@@ -19,14 +19,6 @@
 
 #include "DatapathPlugin.h"
 
-/*Texture			*VisionSource::texture;
-bool			VisionSource::bCapturing;
-HRGB			VisionSource::hRGB;
-LPBITMAPINFO	VisionSource::lpBitmapInfo;
-PVOID			VisionSource::pBitmapBits[NUM_BUFFERS];
-HBITMAP			VisionSource::hBitmaps[NUM_BUFFERS];
-unsigned long	VisionSource::Buffers;*/
-
 void VisionSource::CreateBitmapInformation(BITMAPINFO *pBitmapInfo, int width, int height, int bitCount)
 {
    pBitmapInfo->bmiHeader.biWidth          = width;
@@ -72,11 +64,16 @@ bool VisionSource::Init(XElement *data)
 
     this->data = data;
     UpdateSettings();
+	int cropping = data->GetInt(TEXT("cropping"));
+	int width = data->GetInt(cropping ? TEXT("cropWidth") : TEXT("resolutionWidth"), 640);
+	int height = data->GetInt(cropping ? TEXT("cropHeight") : TEXT("resolutionHeight"), 480);
 
-	lpBitmapInfo = (LPBITMAPINFO)Allocate(sizeof(BITMAPINFOHEADER)+(3*sizeof(DWORD)));
-
-	if ( lpBitmapInfo )
-	CreateBitmapInformation(lpBitmapInfo, data->GetInt(TEXT("resolutionWidth"), 640), data->GetInt(TEXT("resolutionHeight"), 480), 32); // bpp hardcoded
+	for (int i = 0; i < NUM_BUFFERS; i++)
+	{
+		lpBitmapInfo[i] = (LPBITMAPINFO)Allocate(sizeof(BITMAPINFOHEADER)+(3*sizeof(DWORD)));
+		if (lpBitmapInfo[i])
+			CreateBitmapInformation(lpBitmapInfo[i], width, height, 32); // bpp hardcoded
+	}
 	
 	return true;
 
@@ -85,15 +82,10 @@ bool VisionSource::Init(XElement *data)
 
 VisionSource::VisionSource()
 {
-	lpBitmapInfo = NULL;
-	for(int i=0; i<NUM_BUFFERS; ++i) pBitmapBits[i] = NULL;
-	for(int i=0; i<NUM_BUFFERS; ++i) hBitmaps[i] = NULL;
-	for(int i=0; i<NUM_BUFFERS; ++i) pTextures[i] = NULL;
-	Buffers = 0;
-	hRGB = 0;
 	bFlipVertical = true;
 	sharedInfo.pCapturing = &bCapturing;
 	sharedInfo.pTextures = &pTextures;
+	sharedInfo.lpBitmapInfo = &lpBitmapInfo;
 	sharedInfo.pBitmapBits = &pBitmapBits;
 	sharedInfo.pBuffers = &Buffers;
 	sharedInfo.hMutex = OSCreateMutex();
@@ -111,12 +103,11 @@ VisionSource::~VisionSource()
 		unsigned long i;
 		for (i = 0; i < Buffers; i++)
 		{
-			pTextures[i]->Unmap();
-			//DeleteObject(hBitmaps[i]);
+			delete pTextures[i];
+			DeleteObject(hBitmaps[i]);
+			Free(lpBitmapInfo[i]);
 		}
 	}
-	//texture->Unmap();
-	Free(lpBitmapInfo);
 	OSCloseMutex(sharedInfo.hMutex);
 
     traceOut;
@@ -131,17 +122,25 @@ void VisionSource::Start()
     if(bCapturing)
         return;
 
-	if (RGBERROR_NO_ERROR == RGBOpenInput(0, &hRGB)) // hardcode input # for now
+	int input = data->GetInt(TEXT("input"));
+
+	if (RGBERROR_NO_ERROR == RGBOpenInput(input, &hRGB)) // hardcode input # for now
 	{
 		if (RGBERROR_NO_ERROR == RGBSetFrameDropping(hRGB, 0))
 		{
-			if (RGBERROR_NO_ERROR == RGBSetFrameCapturedFn(hRGB, &Receive, (ULONG_PTR)&sharedInfo))
+			if(data->GetInt(TEXT("cropping")))
+			{
+				RGBEnableCropping(hRGB, 1);
+				RGBSetCropping(hRGB, data->GetInt(TEXT("cropTop")), data->GetInt(TEXT("cropLeft")), data->GetInt(TEXT("cropWidth"), 640), data->GetInt(TEXT("cropHeight"), 480));
+			}
+
+			if (RGBERROR_NO_ERROR == RGBSetFrameCapturedFnEx(hRGB, &Receive, (ULONG_PTR)&sharedInfo))
 			{
 				if (Buffers)
 				{
 				   for (unsigned long i = 0; i < Buffers; i++)
 				   {
-					  if (RGBERROR_NO_ERROR != RGBChainOutputBuffer(hRGB, lpBitmapInfo, pBitmapBits[i]))
+					  if (RGBERROR_NO_ERROR != RGBChainOutputBuffer(hRGB, lpBitmapInfo[i], pBitmapBits[i]))
 						  break;
 				   }
 
@@ -154,7 +153,9 @@ void VisionSource::Start()
 			}
 		}
 	}
-	AppWarning(TEXT("Could not open Vision input 0"));
+	TCHAR warning[255];
+	StringCchPrintf(warning, 255, TEXT("Could not open Vision input %i"), input);
+	AppWarning(warning);
     traceOut;
 }
 
@@ -188,8 +189,8 @@ void VisionSource::BeginScene()
 	// allocate textures
 	while(Buffers < NUM_BUFFERS)
 	{
-		hBitmaps[Buffers] = CreateDIBSection(hDC, lpBitmapInfo, DIB_RGB_COLORS, &pBitmapBits[Buffers], NULL, 0);
-		pTextures[Buffers] = CreateTexture(lpBitmapInfo->bmiHeader.biWidth, lpBitmapInfo->bmiHeader.biHeight, GS_BGR, NULL, FALSE, FALSE);
+		hBitmaps[Buffers] = CreateDIBSection(hDC, lpBitmapInfo[Buffers], DIB_RGB_COLORS, &pBitmapBits[Buffers], NULL, 0);
+		pTextures[Buffers] = CreateTexture(lpBitmapInfo[Buffers]->bmiHeader.biWidth, lpBitmapInfo[Buffers]->bmiHeader.biHeight, GS_BGR, NULL, FALSE, FALSE);
 		//pTextures[Buffers]->Map((BYTE*&)pBitmapBits[Buffers], pitch);
 
 		if (pTextures[Buffers])
@@ -219,7 +220,7 @@ void VisionSource::EndScene()
     traceOut;
 }
 
-void RGBCBKAPI VisionSource::Receive(HWND hWnd, HRGB hRGB, LPBITMAPINFOHEADER pBitmapInfo, void *pBitmapBits, ULONG_PTR userData)
+void RGBCBKAPI VisionSource::Receive(HWND hWnd, HRGB hRGB, PRGBFRAMEDATA pFrameData, ULONG_PTR userData)
 {
 	SharedVisionInfo *sharedInfo = (SharedVisionInfo*)userData;
 	OSEnterMutex(sharedInfo->hMutex);
@@ -228,20 +229,37 @@ void RGBCBKAPI VisionSource::Receive(HWND hWnd, HRGB hRGB, LPBITMAPINFOHEADER pB
 		//API->EnterSceneMutex();
 		//(*sharedInfo->pTexture)->SetImage(pBitmapBits, GS_IMAGEFORMAT_BGRX, pBitmapInfo->biWidth*4);
 
-		for (unsigned long i = 0; i < *sharedInfo->pBuffers; i++)
+		for (unsigned long i = 0; i < *sharedInfo->pBuffers; i++) // find which buffer we have been passed
 		{
-			if ((*sharedInfo->pBitmapBits)[i] == pBitmapBits)
+			if ((*sharedInfo->pBitmapBits)[i] == pFrameData->PBitmapBits)
 			{
 				UINT pitch;
 				BYTE* cruft;
+				CapturedFrame frame;
 				//(*sharedInfo->pTextures)[i]->Unmap();
 
 				(*sharedInfo->pTextures)[i]->Map(cruft, pitch);
-				SSECopy(cruft, pBitmapBits, pBitmapInfo->biHeight*pitch);
+				SSECopy(cruft, pFrameData->PBitmapBits, (*sharedInfo->pTextures)[i]->Height()*pitch);
 				(*sharedInfo->pTextures)[i]->Unmap();
 
+				frame.pTexture = (*sharedInfo->pTextures)[i];
+				if ((pFrameData->PBitmapInfo->biWidth != (*sharedInfo->pTextures)[i]->Width()) || (pFrameData->PBitmapInfo->biHeight != (*sharedInfo->pTextures)[i]->Height()))
+				{					
+					HDC hDC = GetDC(NULL);
+					if (hDC)
+					{
+						DeleteObject((*sharedInfo->hBitmaps)[i]);
+						CreateBitmapInformation((*sharedInfo->lpBitmapInfo)[i], pFrameData->PBitmapInfo->biWidth, pFrameData->PBitmapInfo->biHeight, 32); // bpp hardcoded
+						(*sharedInfo->hBitmaps)[i] = CreateDIBSection(hDC, (*sharedInfo->lpBitmapInfo)[i], DIB_RGB_COLORS, &(*sharedInfo->pBitmapBits)[i], NULL, 0);
+						ReleaseDC(NULL, hDC);
+						frame.bChanged = true;
+					}
+				}
+				else
+					frame.bChanged = false;
+
 				//(*sharedInfo->pTextures)[i]->SetImage(pBitmapBits, GS_IMAGEFORMAT_BGRX, pBitmapInfo->biWidth*4);
-				(sharedInfo->qTexture).push((*sharedInfo->pTextures)[i]);
+				(sharedInfo->qFrames).push(frame);
 				break;
 			}
 		}
@@ -258,13 +276,13 @@ void VisionSource::Render(const Vect2 &pos, const Vect2 &size)
     traceIn(VisionSource::Render);
 
 	OSEnterMutex(sharedInfo.hMutex);
-	if (!sharedInfo.qTexture.empty())
+	if (!sharedInfo.qFrames.empty())
 	{
 		//sharedInfo.qTexture.front()->Unmap();
 		
-		for (unsigned long i = 0; i < Buffers; i++)
+		for (unsigned long i = 0; i < Buffers; i++) // find which texture we have been passed
 		{
-			if (pTextures[i] == sharedInfo.qTexture.front())
+			if (pTextures[i] == sharedInfo.qFrames.front().pTexture)
 			{
 				unsigned long ret;
 				//UINT pitch;
@@ -275,35 +293,23 @@ void VisionSource::Render(const Vect2 &pos, const Vect2 &size)
 				//pTextures[i]->Map(cruft, pitch);
 				//API->LeaveSceneMutex();
 				//(BYTE*&)pBitmapBits[i] = cruft;
-				ret = RGBChainOutputBuffer(hRGB, lpBitmapInfo, pBitmapBits[i]);
-				lastBuf = i;
+
+				if (sharedInfo.qFrames.front().bChanged)
+				{
+					delete pTextures[i];
+					pTextures[i] = CreateTexture(lpBitmapInfo[i]->bmiHeader.biWidth, lpBitmapInfo[i]->bmiHeader.biHeight, GS_BGR, NULL, FALSE, FALSE);
+				}
+
+				ret = RGBChainOutputBuffer(hRGB, lpBitmapInfo[i], pBitmapBits[i]);
+				lastTex = i;
 				break;
 			}
 		}
-		sharedInfo.qTexture.pop();
+		sharedInfo.qFrames.pop();
 	}
 	else
-		DrawSprite(pTextures[lastBuf], 0xFFFFFFFF, pos.x, pos.y, pos.x+size.x, pos.y+size.y);
+		DrawSprite(pTextures[lastTex], 0xFFFFFFFF, pos.x, pos.y, pos.x+size.x, pos.y+size.y);
 	OSLeaveMutex(sharedInfo.hMutex);
-
-    /*if (NULL == texture)
-		{
-			// create the texture regardless, will just show up as red to indicate failure
-			unsigned int size = lpBitmapInfo->bmiHeader.biWidth*lpBitmapInfo->bmiHeader.biHeight*4;
-			BYTE *textureData = (BYTE*)Allocate(size);
-
-			msetd(textureData, 0xFFFF0000, size);
-			texture = CreateTexture(lpBitmapInfo->bmiHeader.biWidth, lpBitmapInfo->bmiHeader.biHeight, GS_BGR, textureData, FALSE, FALSE);
-		
-			Free(textureData);
-		}
-	else
-    {
-        if(bFlipVertical)
-            DrawSprite(texture, 0xFFFFFFFF, pos.x, pos.y, pos.x+size.x, pos.y+size.y);
-        else
-            DrawSprite(texture, 0xFFFFFFFF, pos.x, pos.y+size.y, pos.x+size.x, pos.y);
-    }*/
 
     traceOut;
 }
@@ -312,8 +318,14 @@ void VisionSource::UpdateSettings()
 {
     traceIn(VisionSource::UpdateSettings);
 
-	renderCX = data->GetInt(TEXT("resolutionWidth"));
-	renderCY = data->GetInt(TEXT("resolutionHeight"));
+	int cropping = data->GetInt(TEXT("cropping"));
+	renderCX = data->GetInt(cropping ? TEXT("cropWidth") : TEXT("resolutionWidth"), 640);
+	renderCY = data->GetInt(cropping ? TEXT("cropHeight") : TEXT("resolutionHeight"), 480);
+
+	RGBEnableCropping(hRGB, cropping);
+
+	if(cropping)
+		RGBSetCropping(hRGB, data->GetInt(TEXT("cropTop")), data->GetInt(TEXT("cropLeft")), data->GetInt(TEXT("cropWidth"), 640), data->GetInt(TEXT("cropHeight"), 480));
 
     //bool bWasCapturing = bCapturing;
 

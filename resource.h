@@ -2,9 +2,6 @@
 // Microsoft Visual C++ generated include file.
 // Used by DatapathPlugin.rc
 //
-#ifndef WS_EX_COMPOSITED
-#define WS_EX_COMPOSITED				0x02000000L
-#endif
 #define IDD_CONFIG                      102
 #define IDC_ADDRWIDTH                   1000
 #define IDC_ADDRHEIGHT                  1001
@@ -26,6 +23,7 @@
 #define IDC_CONTRASTVALUE               1017
 #define IDC_TOP                         1018
 #define IDC_LEFT                        1019
+#define IDC_LEFT1                       1019
 #define IDC_WIDTH                       1020
 #define IDC_HEIGHT                      1021
 #define IDC_TOPSPIN                     1022

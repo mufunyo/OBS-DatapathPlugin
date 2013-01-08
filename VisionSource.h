@@ -27,14 +27,21 @@
 
 #define NUM_BUFFERS 2
 
+struct CapturedFrame
+{
+	Texture* pTexture;
+	bool bChanged;
+};
+
 struct SharedVisionInfo
 {
 	bool *pCapturing;
 	Texture *(*pTextures)[NUM_BUFFERS];
+	LPBITMAPINFO (*lpBitmapInfo)[NUM_BUFFERS];
 	HBITMAP (*hBitmaps)[NUM_BUFFERS];
 	PVOID (*pBitmapBits)[NUM_BUFFERS];
 	unsigned long *pBuffers;
-	std::queue<Texture*> qTexture;
+	std::queue<CapturedFrame> qFrames;
 	HANDLE hMutex;
 };
 
@@ -49,19 +56,19 @@ class VisionSource : public ImageSource
 	Texture			*texture;
     bool				bCapturing;
 	HRGB				hRGB;
-	LPBITMAPINFO		lpBitmapInfo;
+	LPBITMAPINFO		lpBitmapInfo[NUM_BUFFERS];
 	PVOID			pBitmapBits[NUM_BUFFERS];
 	HBITMAP			hBitmaps[NUM_BUFFERS];
 	Texture					*pTextures[NUM_BUFFERS];
 	unsigned long	Buffers;
 	SharedVisionInfo		sharedInfo;
-	unsigned long	lastBuf;
+	unsigned long	lastTex;
 
     //---------------------------------
 
     void Start();
     void Stop();
-	void CreateBitmapInformation(BITMAPINFO *pBitmapInfo, int width, int height, int bitCount);
+	static void CreateBitmapInformation(BITMAPINFO *pBitmapInfo, int width, int height, int bitCount);
 
 public:
     bool Init(XElement *data);
@@ -76,7 +83,7 @@ public:
     void BeginScene();
     void EndScene();
 
-	static RGBFRAMECAPTUREDFN Receive;
+	static RGBFRAMECAPTUREDFNEX Receive;
 
     Vect2 GetSize() const {return Vect2(float(renderCX), float(renderCY));}
 };
