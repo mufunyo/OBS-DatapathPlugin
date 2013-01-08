@@ -322,16 +322,13 @@ void VisionSource::UpdateSettings()
 	renderCX = data->GetInt(cropping ? TEXT("cropWidth") : TEXT("resolutionWidth"), 640);
 	renderCY = data->GetInt(cropping ? TEXT("cropHeight") : TEXT("resolutionHeight"), 480);
 
-	RGBEnableCropping(hRGB, cropping);
+	if (hRGB) // are we capturing?
+	{
+		RGBEnableCropping(hRGB, cropping);
 
-	if(cropping)
-		RGBSetCropping(hRGB, data->GetInt(TEXT("cropTop")), data->GetInt(TEXT("cropLeft")), data->GetInt(TEXT("cropWidth"), 640), data->GetInt(TEXT("cropHeight"), 480));
-
-    //bool bWasCapturing = bCapturing;
-
-    //if(bWasCapturing) Stop();
-
-    //if(bWasCapturing) Start();
+		if(cropping)
+			RGBSetCropping(hRGB, data->GetInt(TEXT("cropTop")), data->GetInt(TEXT("cropLeft")), data->GetInt(TEXT("cropWidth"), 640), data->GetInt(TEXT("cropHeight"), 480));
+	}
 
     traceOut;
 }
