@@ -32,10 +32,13 @@
 #define IDC_HEIGHTSPIN                  1025
 #define IDC_USEINACTIVE                 1026
 #define IDC_DONTUSEINACTIVE             1027
+#define IDC_CONTRAST2                   1027
 #define IDC_CAPTUREFORMAT_AUTO          1028
 #define IDC_CAPTUREFORMAT_555           1029
+#define IDC_CONTRASTVALUE2              1029
 #define IDC_CAPTUREFORMAT_565           1030
 #define IDC_CAPTUREFORMAT_888           1031
+#define IDC_CONTRAST3                   1031
 #define IDC_CAPTUREFORMAT_GREY          1032
 #define IDC_CHECK2                      1032
 #define IDC_CUSTOMRES                   1032
@@ -43,11 +46,14 @@
 #define IDC_CAPTSETTINGS                1034
 #define IDC_CROPPING                    1035
 #define IDC_ACTIVE                      1036
+#define IDC_CAPTSETTINGS2               1036
 #define IDC_INACTIVE                    1037
 #define IDC_CHECK3                      1037
+#define IDC_CONTRASTVALUE3              1037
 #define IDC_CROPPINGON                  1038
 #define IDC_DETECTEDMODE                1038
 #define IDC_CROPPINGOFF                 1039
+#define IDC_CROPPING2                   1039
 #define IDC_TOPSTATIC                   1040
 #define IDC_LEFTSTATIC                  1041
 #define IDC_WIDTHSTATIC                 1042
@@ -62,6 +68,11 @@
 #define IDC_BRIGHTNESSSTATIC            1051
 #define IDC_CONTRASTSTATIC              1052
 #define IDC_RESET                       1053
+#define IDC_CONTRASTSTATIC2             1055
+#define IDC_CONTRASTSTATIC3             1057
+#define IDC_CONTRASTSTATIC4             1059
+#define IDC_CONTRAST4                   1060
+#define IDC_CONTRASTVALUE4              1062
 
 // Next default values for new objects
 // 

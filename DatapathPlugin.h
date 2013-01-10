@@ -49,7 +49,14 @@ static struct
 struct ConfigVisionInfo
 {
     XElement *data;
+	VisionSource *source;
+	HWND hConfigWnd;
 };
+
+void CreateBitmapInformation(BITMAPINFO *pBitmapInfo, int width, int height, int bitCount);
+void SetCropping(LONG user, int* pLeft, int* pTop, int* pWidth, int* pHeight);
+void GetModeText(unsigned long input, TSTR string, size_t size);
+static RGBMODECHANGEDFN ModeChanged;
 
 extern LocaleStringLookup *pluginLocale;
 #define PluginStr(text) pluginLocale->LookupString(TEXT2(text))

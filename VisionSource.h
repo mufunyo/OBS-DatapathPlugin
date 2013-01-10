@@ -43,6 +43,8 @@ struct SharedVisionInfo
 	unsigned long *pBuffers;
 	std::queue<CapturedFrame> qFrames;
 	HANDLE hMutex;
+	HANDLE hDataMutex;
+	XElement **data;
 };
 
 class VisionSource : public ImageSource
@@ -55,7 +57,6 @@ class VisionSource : public ImageSource
     XElement				*data;
 	Texture			*texture;
     bool				bCapturing;
-	HRGB				hRGB;
 	LPBITMAPINFO		lpBitmapInfo[NUM_BUFFERS];
 	PVOID			pBitmapBits[NUM_BUFFERS];
 	HBITMAP			hBitmaps[NUM_BUFFERS];
@@ -65,10 +66,6 @@ class VisionSource : public ImageSource
 	unsigned long	lastTex;
 
     //---------------------------------
-
-    void Start();
-    void Stop();
-	static void CreateBitmapInformation(BITMAPINFO *pBitmapInfo, int width, int height, int bitCount);
 
 public:
     bool Init(XElement *data);
@@ -83,7 +80,14 @@ public:
     void BeginScene();
     void EndScene();
 
+	void Start();
+    void Stop();
+
 	static RGBFRAMECAPTUREDFNEX Receive;
+	static RGBMODECHANGEDFN ResolutionSwitch;
+	
+	HRGB hRGB;
+	static HWND hConfigWnd;
 
     Vect2 GetSize() const {return Vect2(float(renderCX), float(renderCY));}
 };

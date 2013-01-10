@@ -19,42 +19,7 @@
 
 #include "DatapathPlugin.h"
 
-void VisionSource::CreateBitmapInformation(BITMAPINFO *pBitmapInfo, int width, int height, int bitCount)
-{
-   pBitmapInfo->bmiHeader.biWidth          = width;
-   pBitmapInfo->bmiHeader.biHeight         = height;
-   pBitmapInfo->bmiHeader.biBitCount       = bitCount;
-   pBitmapInfo->bmiHeader.biSize           = sizeof(BITMAPINFOHEADER);
-   pBitmapInfo->bmiHeader.biPlanes         = 1;
-   pBitmapInfo->bmiHeader.biCompression    = BI_BITFIELDS;
-   pBitmapInfo->bmiHeader.biSizeImage      = 0;
-   pBitmapInfo->bmiHeader.biXPelsPerMeter  = 3000;
-   pBitmapInfo->bmiHeader.biYPelsPerMeter  = 3000;
-   pBitmapInfo->bmiHeader.biClrUsed        = 0;
-   pBitmapInfo->bmiHeader.biClrImportant   = 0;
-   pBitmapInfo->bmiHeader.biSizeImage      = width * height * bitCount / 8 ;
-
-   switch ( bitCount )
-   {
-      case 16:
-      {
-         memcpy ( &pBitmapInfo->bmiColors, &ColourMasks[RGB_565], 
-               sizeof(ColourMasks[RGB_565]) );
-         break;
-      }
-      case 32:
-      {
-         memcpy ( &pBitmapInfo->bmiColors, &ColourMasks[RGB_888], 
-               sizeof(ColourMasks[RGB_888]) );
-         break;
-      }
-      default:
-      {
-         memcpy ( &pBitmapInfo->bmiColors, &ColourMasks[RGB_UNKNOWN], 
-               sizeof(ColourMasks[RGB_UNKNOWN]) );
-      }
-   }
-}
+HWND VisionSource::hConfigWnd = NULL;
 
 bool VisionSource::Init(XElement *data)
 {
@@ -89,6 +54,8 @@ VisionSource::VisionSource()
 	sharedInfo.pBitmapBits = &pBitmapBits;
 	sharedInfo.pBuffers = &Buffers;
 	sharedInfo.hMutex = OSCreateMutex();
+	sharedInfo.hDataMutex = OSCreateMutex();
+	sharedInfo.data = &data;
 	sharedInfo.hBitmaps = &hBitmaps;
 }
 
@@ -109,6 +76,7 @@ VisionSource::~VisionSource()
 		}
 	}
 	OSCloseMutex(sharedInfo.hMutex);
+	OSCloseMutex(sharedInfo.hDataMutex);
 
     traceOut;
 }
@@ -124,14 +92,14 @@ void VisionSource::Start()
 
 	int input = data->GetInt(TEXT("input"));
 
-	if (RGBERROR_NO_ERROR == RGBOpenInput(input, &hRGB)) // hardcode input # for now
+	if (RGBERROR_NO_ERROR == RGBOpenInput(input, &hRGB))
 	{
 		if (RGBERROR_NO_ERROR == RGBSetFrameDropping(hRGB, 0))
 		{
 			if(data->GetInt(TEXT("cropping")))
 			{
-				RGBEnableCropping(hRGB, 1);
 				RGBSetCropping(hRGB, data->GetInt(TEXT("cropTop")), data->GetInt(TEXT("cropLeft")), data->GetInt(TEXT("cropWidth"), 640), data->GetInt(TEXT("cropHeight"), 480));
+				RGBEnableCropping(hRGB, 1);
 			}
 
 			if (RGBERROR_NO_ERROR == RGBSetFrameCapturedFnEx(hRGB, &Receive, (ULONG_PTR)&sharedInfo))
@@ -143,6 +111,8 @@ void VisionSource::Start()
 					  if (RGBERROR_NO_ERROR != RGBChainOutputBuffer(hRGB, lpBitmapInfo[i], pBitmapBits[i]))
 						  break;
 				   }
+
+				   RGBSetModeChangedFn(hRGB, &ResolutionSwitch, (ULONG_PTR)&sharedInfo);
 
 				   if (RGBERROR_NO_ERROR == RGBUseOutputBuffers(hRGB, TRUE))
 						bCapturing = true;
@@ -314,6 +284,30 @@ void VisionSource::Render(const Vect2 &pos, const Vect2 &size)
     traceOut;
 }
 
+void RGBCBKAPI VisionSource::ResolutionSwitch(HWND hWnd, HRGB hRGB, PRGBMODECHANGEDINFO pModeChangedInfo, ULONG_PTR userData)
+{
+	SharedVisionInfo *sharedInfo = (SharedVisionInfo*)userData;
+	unsigned long width;
+	unsigned long height;
+
+	if (hConfigWnd)
+	{
+		TCHAR modeText[255];
+		GetModeText((*sharedInfo->data)->GetInt(TEXT("input")), modeText, 255);
+		SetWindowText(GetDlgItem(hConfigWnd, IDC_DETECTEDMODE), modeText);
+	}
+	
+	if ((RGBERROR_NO_ERROR == RGBGetCaptureWidthDefault(hRGB, &width)) && (RGBERROR_NO_ERROR == RGBGetCaptureWidthDefault(hRGB, &height)))
+	{
+		RGBSetCaptureWidth(hRGB, width);
+		RGBSetCaptureHeight(hRGB, height);
+		OSEnterMutex(sharedInfo->hDataMutex);
+		(*sharedInfo->data)->SetInt(TEXT("resolutionWidth"), width);
+		(*sharedInfo->data)->SetInt(TEXT("resolutionWidth"), height);
+		OSLeaveMutex(sharedInfo->hDataMutex);
+	}
+	
+}
 void VisionSource::UpdateSettings()
 {
     traceIn(VisionSource::UpdateSettings);

@@ -31,6 +31,154 @@ HINSTANCE hinstMain = NULL;
 
 #define DATAPATH_CLASSNAME TEXT("DatapathCapture")
 
+void CreateBitmapInformation(BITMAPINFO *pBitmapInfo, int width, int height, int bitCount)
+{
+   pBitmapInfo->bmiHeader.biWidth          = width;
+   pBitmapInfo->bmiHeader.biHeight         = height;
+   pBitmapInfo->bmiHeader.biBitCount       = bitCount;
+   pBitmapInfo->bmiHeader.biSize           = sizeof(BITMAPINFOHEADER);
+   pBitmapInfo->bmiHeader.biPlanes         = 1;
+   pBitmapInfo->bmiHeader.biCompression    = BI_BITFIELDS;
+   pBitmapInfo->bmiHeader.biSizeImage      = 0;
+   pBitmapInfo->bmiHeader.biXPelsPerMeter  = 3000;
+   pBitmapInfo->bmiHeader.biYPelsPerMeter  = 3000;
+   pBitmapInfo->bmiHeader.biClrUsed        = 0;
+   pBitmapInfo->bmiHeader.biClrImportant   = 0;
+   pBitmapInfo->bmiHeader.biSizeImage      = width * height * bitCount / 8 ;
+
+   switch ( bitCount )
+   {
+      case 16:
+      {
+         memcpy ( &pBitmapInfo->bmiColors, &ColourMasks[RGB_565], 
+               sizeof(ColourMasks[RGB_565]) );
+         break;
+      }
+      case 32:
+      {
+         memcpy ( &pBitmapInfo->bmiColors, &ColourMasks[RGB_888], 
+               sizeof(ColourMasks[RGB_888]) );
+         break;
+      }
+      default:
+      {
+         memcpy ( &pBitmapInfo->bmiColors, &ColourMasks[RGB_UNKNOWN], 
+               sizeof(ColourMasks[RGB_UNKNOWN]) );
+      }
+   }
+}
+
+void SetCropping(LONG user, int* pLeft, int* pTop, int* pWidth, int* pHeight)
+{
+	if (user <= DWLP_USER)
+		return;
+	ConfigVisionInfo *configInfo = (ConfigVisionInfo*)user;
+
+	if (!configInfo->source)
+		return;
+	if (!configInfo->source->hRGB)
+		return;
+
+	int left, top, width, height;
+
+	if (!pLeft || !pTop || !pWidth || !pHeight) // fill in missing values
+	{
+		RGBGetCropping(configInfo->source->hRGB, (signed long*)&top, (signed long*)&left, (unsigned long*)&width, (unsigned long*)&height);
+		if (!pLeft)
+			pLeft = &left;
+		if (!pTop)
+			pTop = &top;
+		if (!pWidth)
+			pWidth = &width;
+		if (!pHeight)
+			pHeight = &height;
+	}
+
+	RGBSetCropping(configInfo->source->hRGB, (signed long)*pTop, (signed long)*pLeft, (unsigned long)*pWidth, (unsigned long)*pHeight);
+}
+
+void GetModeText(unsigned long input, TSTR string, size_t size)
+{
+	unsigned long signalWidth = 0;
+	unsigned long signalHeight = 0;
+	unsigned long signalHz = 0;
+	SIGNALTYPE signalType;
+	CTSTR signalText;
+
+	RGBGetInputSignalType(input, &signalType, &signalWidth, &signalHeight, &signalHz);
+
+	if (RGB_SIGNALTYPE_NOSIGNAL != signalType)
+	{
+		switch(signalType)
+		{
+		case RGB_SIGNALTYPE_COMPOSITE:
+			{
+				signalText = TEXT("Composite");
+				break;
+			}
+		case RGB_SIGNALTYPE_DLDVI:
+			{
+				signalText = TEXT("DVI-DL");
+				break;
+			}
+		case RGB_SIGNALTYPE_DVI:
+			{
+				signalText = TEXT("DVI");
+				break;
+			}
+		case RGB_SIGNALTYPE_SDI:
+			{
+				signalText = TEXT("SDI");
+				break;
+			}
+		case RGB_SIGNALTYPE_SVIDEO:
+			{
+				signalText = TEXT("S-Video");
+				break;
+			}
+		case RGB_SIGNALTYPE_VGA:
+			{
+				signalText = TEXT("VGA");
+				break;
+			}
+		case RGB_SIGNALTYPE_YPRPB:
+			{
+				signalText = TEXT("YPbPr");
+			}
+		default:
+			break;
+		}
+
+		StringCchPrintf(string, size, TEXT("Detected mode:\n%s %ix%i %.5gHz"), signalText, signalWidth, signalHeight, ((float)signalHz/1000.0f));
+	}
+	else
+	{
+		switch(signalType)
+		{
+		case RGB_SIGNALTYPE_NOSIGNAL:
+			{
+				StringCchCopy(string, size, TEXT("\nNo signal detected"));
+				break;
+			}
+		case RGB_SIGNALTYPE_OUTOFRANGE:
+			StringCchCopy(string, size, TEXT("\nSignal out of range"));
+		default:
+			break;
+		}
+	}
+}
+
+void RGBCBKAPI ModeChanged(HWND hWnd, HRGB hRGB, PRGBMODECHANGEDINFO pModeChangedInfo, ULONG_PTR userData)
+{
+	ConfigVisionInfo *configInfo = (ConfigVisionInfo*)userData;
+	if (configInfo->hConfigWnd)
+	{
+		TCHAR modeText[255];
+		GetModeText(configInfo->data->GetInt(TEXT("input")), modeText, 255);
+		SetWindowText(GetDlgItem(configInfo->hConfigWnd, IDC_DETECTEDMODE), modeText);
+	}
+}
+
 INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch(message)
@@ -45,12 +193,6 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 				unsigned long heightCur = 480;
 				unsigned long heightMin = 120;
 				unsigned long heightMax = 4096;
-				unsigned long signalWidth = 0;
-				unsigned long signalHeight = 0;
-				unsigned long signalHz = 0;
-				SIGNALTYPE signalType;
-				CTSTR signalText;
-				TCHAR modeText[255];
 				long cropTopCur = 0;
 				long cropTopMin = 0;
 				long cropTopMax = 0;
@@ -63,9 +205,11 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 				unsigned long cropHeightCur = 0;
 				unsigned long cropHeightMin = 0;
 				unsigned long cropHeightMax = 0;
+				TCHAR modeText[255];
 
                 ConfigVisionInfo *configInfo = (ConfigVisionInfo*)lParam;
                 SetWindowLongPtr(hwnd, DWLP_USER, (LONG_PTR)lParam);
+				configInfo->source->hConfigWnd = hwnd;
                 LocalizeWindow(hwnd);
 				
 				SendMessage(GetDlgItem(hwnd, IDC_CUSTOMRES), BM_SETCHECK, 1, 0);
@@ -74,71 +218,18 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 				int input = configInfo->data->GetInt(TEXT("input"));
 				input = min((int)inputs, input);
 
-				RGBGetInputSignalType(input, &signalType, &signalWidth, &signalHeight, &signalHz);
+				GetModeText(input, modeText, 255);
+				SetWindowText(GetDlgItem(hwnd, IDC_DETECTEDMODE), modeText);
 
-				if (RGB_SIGNALTYPE_NOSIGNAL != signalType)
-				{
-					switch(signalType)
-					{
-					case RGB_SIGNALTYPE_COMPOSITE:
-						{
-							signalText = TEXT("Composite");
-							break;
-						}
-					case RGB_SIGNALTYPE_DLDVI:
-						{
-							signalText = TEXT("DVI-DL");
-							break;
-						}
-					case RGB_SIGNALTYPE_DVI:
-						{
-							signalText = TEXT("DVI");
-							break;
-						}
-					case RGB_SIGNALTYPE_SDI:
-						{
-							signalText = TEXT("SDI");
-							break;
-						}
-					case RGB_SIGNALTYPE_SVIDEO:
-						{
-							signalText = TEXT("S-Video");
-							break;
-						}
-					case RGB_SIGNALTYPE_VGA:
-						{
-							signalText = TEXT("VGA");
-							break;
-						}
-					case RGB_SIGNALTYPE_YPRPB:
-						{
-							signalText = TEXT("YPbPr");
-						}
-					default:
-						break;
-					}
-
-					StringCchPrintf(modeText, 255, TEXT("Detected mode:\n%s %ix%i %.5gHz"), signalText, signalWidth, signalHeight, ((float)signalHz/1000.0f));
-					SetWindowText(GetDlgItem(hwnd, IDC_DETECTEDMODE), modeText);
-				}
+				if (configInfo->source)
+					hRGB = configInfo->source->hRGB;
 				else
 				{
-					switch(signalType)
-					{
-					case RGB_SIGNALTYPE_NOSIGNAL:
-						{
-							SetWindowText(GetDlgItem(hwnd, IDC_DETECTEDMODE), TEXT("\nNo signal detected"));
-							break;
-						}
-					case RGB_SIGNALTYPE_OUTOFRANGE:
-						SetWindowText(GetDlgItem(hwnd, IDC_DETECTEDMODE), TEXT("\nSignal out of range"));
-					default:
-						break;
-					}
+					RGBOpenInput((unsigned long)input, &hRGB);
+					RGBSetModeChangedFn(hRGB, &ModeChanged, (ULONG_PTR)&configInfo);
 				}
 
-
-				if (RGBERROR_NO_ERROR == RGBOpenInput((unsigned long)input, &hRGB))
+				if (hRGB)
 				{
 					RGBGetCaptureWidthDefault(hRGB, &widthCur);
 					RGBGetCaptureWidthMinimum(hRGB, &widthMin);
@@ -150,7 +241,9 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 					RGBGetCroppingMinimum(hRGB, &cropTopMin, &cropLeftMin, &cropWidthMin, &cropHeightMin);
 					RGBGetCroppingMaximum(hRGB, &cropTopMax, &cropLeftMax, &cropWidthMax, &cropHeightMax);
 				}
-				RGBCloseInput(hRGB);
+				
+				if (hRGB && !configInfo->source)
+					RGBCloseInput(hRGB);
 
 				for (unsigned long i = 0; i < inputs; i++)
 				{
@@ -204,6 +297,64 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
         case WM_COMMAND:
             switch(LOWORD(wParam))
             {
+				case IDC_INPUTSOURCE:
+					{
+						if (HIWORD(wParam) == CBN_SELCHANGE)
+						{
+							int input = (int)SendMessage(GetDlgItem(hwnd, IDC_INPUTSOURCE), CB_GETCURSEL, 0, 0);
+							LONG user = GetWindowLongPtr(hwnd, DWLP_USER);
+							if (user > DWLP_USER)
+							{
+								TCHAR modeText[255];
+								ConfigVisionInfo *configInfo = (ConfigVisionInfo*)user;
+								GetModeText(input, modeText, 255);
+								SetWindowText(GetDlgItem(hwnd, IDC_DETECTEDMODE), modeText);
+
+								if (configInfo->source)
+									if (configInfo->source->hRGB)
+									{
+										configInfo->source->Stop();
+										configInfo->data->SetInt(TEXT("input"), input);
+										configInfo->source->Start();
+									}
+							}
+
+						}
+					}
+				case IDC_LEFT:
+					{
+						if (HIWORD(wParam) == EN_CHANGE)
+						{
+							int left = (int)SendMessage(GetDlgItem(hwnd, IDC_LEFTSPIN), UDM_GETPOS32, 0, 0);
+							SetCropping(GetWindowLongPtr(hwnd, DWLP_USER), &left, NULL, NULL, NULL);
+							break;
+						}
+					}
+				case IDC_TOP:
+					{
+						if (HIWORD(wParam) == EN_CHANGE)
+						{
+							int top = (int)SendMessage(GetDlgItem(hwnd, IDC_TOPSPIN), UDM_GETPOS32, 0, 0);
+							SetCropping(GetWindowLongPtr(hwnd, DWLP_USER), NULL, &top, NULL, NULL);
+							break;
+						}
+					}
+				case IDC_WIDTH:
+					{
+						if (HIWORD(wParam) == EN_CHANGE)
+						{
+							int width = (int)SendMessage(GetDlgItem(hwnd, IDC_WIDTHSPIN), UDM_GETPOS32, 0, 0);
+							SetCropping(GetWindowLongPtr(hwnd, DWLP_USER), NULL, NULL, &width, NULL);
+							break;
+						}
+					}
+				case IDC_HEIGHT:
+						if (HIWORD(wParam) == EN_CHANGE)
+						{
+							int height = (int)SendMessage(GetDlgItem(hwnd, IDC_HEIGHTSPIN), UDM_GETPOS32, 0, 0);
+							SetCropping(GetWindowLongPtr(hwnd, DWLP_USER), NULL, NULL, NULL, &height);
+							break;
+						}
 				case IDC_CROPPING:
 					{
 						BOOL cropping = SendMessage(GetDlgItem(hwnd, IDC_CROPPING), BM_GETCHECK, 0, 0);
@@ -220,21 +371,21 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 						EnableWindow(GetDlgItem(hwnd, IDC_HEIGHT), cropping);
 						EnableWindow(GetDlgItem(hwnd, IDC_HEIGHTSTATIC), cropping);
 						EnableWindow(GetDlgItem(hwnd, IDC_HEIGHTSPIN), cropping);
+
+						LONG user = GetWindowLongPtr(hwnd, DWLP_USER);
+						if (user > DWLP_USER)
+						{
+							ConfigVisionInfo *configInfo = (ConfigVisionInfo*)user;
+							if (configInfo->source)
+								if (configInfo->source->hRGB)
+									RGBEnableCropping(configInfo->source->hRGB, cropping);
+						}
+
 						break;
 					}
                 case IDOK:
                     {
 						ConfigVisionInfo *configInfo = (ConfigVisionInfo*)GetWindowLongPtr(hwnd, DWLP_USER);
-                        /*String strBitmap = GetEditText(GetDlgItem(hwnd, IDC_BITMAP));
-                        if(strBitmap.IsEmpty())
-                        {
-                            MessageBox(hwnd, Str("Sources.BitmapSource.Empty"), NULL, 0);
-                            break;
-                        }
-
-                        ConfigBitmapInfo *configInfo = (ConfigBitmapInfo*)GetWindowLongPtr(hwnd, DWLP_USER);
-                        configInfo->data->SetString(TEXT("path"), strBitmap);
-						*/
                         BOOL bFailed;
 						
 						int input = (int)SendMessage(GetDlgItem(hwnd, IDC_INPUTSOURCE), CB_GETCURSEL, 0, 0);
@@ -267,9 +418,13 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 
 						BOOL cropping = (BOOL)SendMessage(GetDlgItem(hwnd, IDC_CROPPING), BM_GETCHECK, 0, 0);
 						configInfo->data->SetInt(TEXT("cropping"), cropping);
+
+						configInfo->source->hConfigWnd = NULL;
                     }
 
                 case IDCANCEL:
+					ConfigVisionInfo *configInfo = (ConfigVisionInfo*)GetWindowLongPtr(hwnd, DWLP_USER);
+					configInfo->source->hConfigWnd = NULL;
                     EndDialog(hwnd, LOWORD(wParam));
                     break;
             }
@@ -293,6 +448,7 @@ bool STDCALL ConfigureVisionSource(XElement *element, bool bCreating)
 
     ConfigVisionInfo configInfo;
     configInfo.data = data;
+	configInfo.source = (VisionSource*)API->GetSceneImageSource(element->GetName());
 
     if(DialogBoxParam(hinstMain, MAKEINTRESOURCE(IDD_CONFIG), API->GetMainWindow(), ConfigureDialogProc, (LPARAM)&configInfo) == IDOK)
     {
