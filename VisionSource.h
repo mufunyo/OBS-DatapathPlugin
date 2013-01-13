@@ -33,6 +33,13 @@ struct CapturedFrame
 	bool bChanged;
 };
 
+enum SignalState
+{
+	active,
+	inactive,
+	invalid
+};
+
 struct SharedVisionInfo
 {
 	bool *pCapturing;
@@ -42,30 +49,32 @@ struct SharedVisionInfo
 	PVOID (*pBitmapBits)[NUM_BUFFERS];
 	unsigned long *pBuffers;
 	std::queue<CapturedFrame> qFrames;
+	SignalState *pSignal;
 	HANDLE hMutex;
 	HANDLE hDataMutex;
 	XElement **data;
 };
 
+
+
 class VisionSource : public ImageSource
 {
-    //---------------------------------
+    bool				bFlipVertical;
+    UINT				renderCX, renderCY;
 
-    bool					bFlipVertical;
-    UINT					renderCX, renderCY;
-
-    XElement				*data;
-	Texture			*texture;
+    XElement			*data;
+	Texture				*texture;
     bool				bCapturing;
 	LPBITMAPINFO		lpBitmapInfo[NUM_BUFFERS];
-	PVOID			pBitmapBits[NUM_BUFFERS];
-	HBITMAP			hBitmaps[NUM_BUFFERS];
-	Texture					*pTextures[NUM_BUFFERS];
-	unsigned long	Buffers;
-	SharedVisionInfo		sharedInfo;
-	unsigned long	lastTex;
-
-    //---------------------------------
+	PVOID				pBitmapBits[NUM_BUFFERS];
+	HBITMAP				hBitmaps[NUM_BUFFERS];
+	Texture				*pTextures[NUM_BUFFERS];
+	Texture				*noSignalTex;
+	Texture				*invalidSignalTex;
+	unsigned long		Buffers;
+	SharedVisionInfo	sharedInfo;
+	unsigned long		lastTex;
+	SignalState			signal;
 
 public:
     bool Init(XElement *data);
@@ -85,6 +94,8 @@ public:
 
 	static RGBFRAMECAPTUREDFNEX Receive;
 	static RGBMODECHANGEDFN ResolutionSwitch;
+	static RGBNOSIGNALFN NoSignal;
+	static RGBINVALIDSIGNALFN InvalidSignal;
 	
 	HRGB hRGB;
 	static HWND hConfigWnd;

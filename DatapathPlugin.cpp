@@ -70,13 +70,9 @@ void CreateBitmapInformation(BITMAPINFO *pBitmapInfo, int width, int height, int
 
 void SetCropping(LONG user, int* pLeft, int* pTop, int* pWidth, int* pHeight)
 {
-	if (user <= DWLP_USER)
-		return;
 	ConfigVisionInfo *configInfo = (ConfigVisionInfo*)user;
 
-	if (!configInfo->source)
-		return;
-	if (!configInfo->source->hRGB)
+	if (user <= DWLP_USER || !configInfo->source || !configInfo->source->hRGB)
 		return;
 
 	int left, top, width, height;
@@ -211,8 +207,6 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
                 SetWindowLongPtr(hwnd, DWLP_USER, (LONG_PTR)lParam);
 				configInfo->source->hConfigWnd = hwnd;
                 LocalizeWindow(hwnd);
-				
-				SendMessage(GetDlgItem(hwnd, IDC_CUSTOMRES), BM_SETCHECK, 1, 0);
 
 				RGBGetNumberOfInputs(&inputs);
 				int input = configInfo->data->GetInt(TEXT("input"));
@@ -263,7 +257,7 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 				int cropWidth = configInfo->data->GetInt(TEXT("cropWidth"), (int)cropWidthCur);
 				int cropHeight = configInfo->data->GetInt(TEXT("cropHeight"), (int)cropHeightCur);
 				BOOL cropping = configInfo->data->GetInt(TEXT("cropping"), FALSE);
-
+				BOOL customRes = configInfo->data->GetInt(TEXT("customRes"), FALSE);
 
 				SendMessage(GetDlgItem(hwnd, IDC_ADDRWIDTHSPIN), UDM_SETRANGE32, (int)widthMin, (int)widthMax);
 				SendMessage(GetDlgItem(hwnd, IDC_ADDRHEIGHTSPIN), UDM_SETRANGE32, (int)heightMin, (int)heightMax);
@@ -278,6 +272,13 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 				SendMessage(GetDlgItem(hwnd, IDC_WIDTHSPIN), UDM_SETPOS32, 0, cropWidth);
 				SendMessage(GetDlgItem(hwnd, IDC_HEIGHTSPIN), UDM_SETPOS32, 0, cropHeight);
 				SendMessage(GetDlgItem(hwnd, IDC_CROPPING), BM_SETCHECK, cropping, 0);
+				SendMessage(GetDlgItem(hwnd, IDC_CUSTOMRES), BM_SETCHECK, customRes, 0);
+				EnableWindow(GetDlgItem(hwnd, IDC_ADDRWIDTH), customRes);
+				EnableWindow(GetDlgItem(hwnd, IDC_ADDRWIDTHSTATIC), customRes);
+				EnableWindow(GetDlgItem(hwnd, IDC_ADDRWIDTHSPIN), customRes);
+				EnableWindow(GetDlgItem(hwnd, IDC_ADDRHEIGHT), customRes);
+				EnableWindow(GetDlgItem(hwnd, IDC_ADDRHEIGHTSTATIC), customRes);
+				EnableWindow(GetDlgItem(hwnd, IDC_ADDRHEIGHTSPIN), customRes);
 				EnableWindow(GetDlgItem(hwnd, IDC_TOP), cropping);
 				EnableWindow(GetDlgItem(hwnd, IDC_TOPSTATIC), cropping);
 				EnableWindow(GetDlgItem(hwnd, IDC_TOPSPIN), cropping);
@@ -372,15 +373,40 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 						EnableWindow(GetDlgItem(hwnd, IDC_HEIGHTSTATIC), cropping);
 						EnableWindow(GetDlgItem(hwnd, IDC_HEIGHTSPIN), cropping);
 
-						LONG user = GetWindowLongPtr(hwnd, DWLP_USER);
-						if (user > DWLP_USER)
-						{
-							ConfigVisionInfo *configInfo = (ConfigVisionInfo*)user;
-							if (configInfo->source)
-								if (configInfo->source->hRGB)
-									RGBEnableCropping(configInfo->source->hRGB, cropping);
-						}
+						ConfigVisionInfo *configInfo = (ConfigVisionInfo*)GetWindowLongPtr(hwnd, DWLP_USER);
+						if ((LONG)configInfo > DWLP_USER && configInfo->source && configInfo->source->hRGB)
+							RGBEnableCropping(configInfo->source->hRGB, cropping);
+						
+						break;
+					}
+				case IDC_CUSTOMRES:
+					{
+						BOOL customRes = SendMessage(GetDlgItem(hwnd, IDC_CUSTOMRES), BM_GETCHECK, 0, 0);
 
+						EnableWindow(GetDlgItem(hwnd, IDC_ADDRWIDTH), customRes);
+						EnableWindow(GetDlgItem(hwnd, IDC_ADDRWIDTHSTATIC), customRes);
+						EnableWindow(GetDlgItem(hwnd, IDC_ADDRWIDTHSPIN), customRes);
+						EnableWindow(GetDlgItem(hwnd, IDC_ADDRHEIGHT), customRes);
+						EnableWindow(GetDlgItem(hwnd, IDC_ADDRHEIGHTSTATIC), customRes);
+						EnableWindow(GetDlgItem(hwnd, IDC_ADDRHEIGHTSPIN), customRes);
+
+						ConfigVisionInfo *configInfo = (ConfigVisionInfo*)GetWindowLongPtr(hwnd, DWLP_USER);
+						if ((LONG)configInfo > DWLP_USER && configInfo->source && configInfo->source->hRGB)
+						{
+							unsigned long width, height;
+							if (customRes)
+							{
+								RGBGetCaptureWidthDefault(configInfo->source->hRGB, &width);
+								RGBGetCaptureHeightDefault(configInfo->source->hRGB, &height);
+							}
+							else
+							{
+								width = (int)SendMessage(GetDlgItem(hwnd, IDC_ADDRWIDTHSPIN), UDM_GETPOS32, 0, 0);
+								height = (int)SendMessage(GetDlgItem(hwnd, IDC_ADDRHEIGHTSPIN), UDM_GETPOS32, 0, 0);
+							}
+							RGBSetCaptureWidth(configInfo->source->hRGB, width);
+							RGBSetCaptureHeight(configInfo->source->hRGB, height);
+						}
 						break;
 					}
                 case IDOK:
@@ -392,13 +418,19 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 						// TODO: check input
                         configInfo->data->SetInt(TEXT("input"), input);
 
-                        int width = (int)SendMessage(GetDlgItem(hwnd, IDC_ADDRWIDTHSPIN), UDM_GETPOS32, 0, (LPARAM)&bFailed);
-						// TODO: check input
-                        configInfo->data->SetInt(TEXT("resolutionWidth"), bFailed ? 640 : width);
+						BOOL customRes = (BOOL)SendMessage(GetDlgItem(hwnd, IDC_CUSTOMRES), BM_GETCHECK, 0, 0);
+						configInfo->data->SetInt(TEXT("customRes"), customRes);
 
-						int height = (int)SendMessage(GetDlgItem(hwnd, IDC_ADDRHEIGHTSPIN), UDM_GETPOS32, 0, (LPARAM)&bFailed);
-                        // TODO: check input
-                        configInfo->data->SetInt(TEXT("resolutionHeight"), bFailed ? 480 : height);
+						if (customRes)
+						{
+							int width = (int)SendMessage(GetDlgItem(hwnd, IDC_ADDRWIDTHSPIN), UDM_GETPOS32, 0, (LPARAM)&bFailed);
+							// TODO: check input
+							configInfo->data->SetInt(TEXT("resolutionWidth"), bFailed ? 640 : width);
+
+							int height = (int)SendMessage(GetDlgItem(hwnd, IDC_ADDRHEIGHTSPIN), UDM_GETPOS32, 0, (LPARAM)&bFailed);
+							// TODO: check input
+							configInfo->data->SetInt(TEXT("resolutionHeight"), bFailed ? 480 : height);
+						}
 
 						int cropTop = (int)SendMessage(GetDlgItem(hwnd, IDC_TOPSPIN), UDM_GETPOS32, 0, (LPARAM)&bFailed);
                         // TODO: check input
@@ -452,8 +484,29 @@ bool STDCALL ConfigureVisionSource(XElement *element, bool bCreating)
 
     if(DialogBoxParam(hinstMain, MAKEINTRESOURCE(IDD_CONFIG), API->GetMainWindow(), ConfigureDialogProc, (LPARAM)&configInfo) == IDOK)
     {
-        element->SetInt(TEXT("cx"), data->GetInt(TEXT("resolutionWidth")));
-        element->SetInt(TEXT("cy"), data->GetInt(TEXT("resolutionHeight")));
+		int input = data->GetInt(TEXT("input"));
+		HRGB hRGB;
+		int width = 640;
+		int height = 480;
+		bool openInput = ((configInfo.source) && (hRGB = configInfo.source->hRGB)); // use existing handle if available
+		
+		if (openInput || RGBERROR_NO_ERROR == RGBOpenInput(input, &hRGB))
+		{
+			RGBGetCaptureWidthDefault(hRGB, (unsigned long*)&width);
+			RGBGetCaptureHeightDefault(hRGB, (unsigned long*)&height);
+			if (!openInput) // don't close a handle we didn't open ourselves
+				RGBCloseInput(hRGB);
+		}
+		if (data->GetInt(TEXT("customRes")))
+		{
+			element->SetInt(TEXT("cx"), data->GetInt(TEXT("resolutionWidth"), width));
+			element->SetInt(TEXT("cy"), data->GetInt(TEXT("resolutionHeight"), height));
+		}
+		else
+		{
+			element->SetInt(TEXT("cx"), width);
+			element->SetInt(TEXT("cy"), height);
+		}
 
         return true;
     }

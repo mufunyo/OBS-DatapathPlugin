@@ -24,21 +24,34 @@ HWND VisionSource::hConfigWnd = NULL;
 bool VisionSource::Init(XElement *data)
 {
     traceIn(VisionSource::Init);
-	//HDC hDC;
-
 
     this->data = data;
     UpdateSettings();
-	int cropping = data->GetInt(TEXT("cropping"));
-	int width = data->GetInt(cropping ? TEXT("cropWidth") : TEXT("resolutionWidth"), 640);
-	int height = data->GetInt(cropping ? TEXT("cropHeight") : TEXT("resolutionHeight"), 480);
 
 	for (int i = 0; i < NUM_BUFFERS; i++)
 	{
 		lpBitmapInfo[i] = (LPBITMAPINFO)Allocate(sizeof(BITMAPINFOHEADER)+(3*sizeof(DWORD)));
 		if (lpBitmapInfo[i])
-			CreateBitmapInformation(lpBitmapInfo[i], width, height, 32); // bpp hardcoded
+			CreateBitmapInformation(lpBitmapInfo[i], renderCX, renderCY, 32); // bpp hardcoded
 	}
+	XFile file;
+	if (file.Open(API->GetPluginDataPath() << TEXT("\\DatapathPlugin\\nosignal.png"), XFILE_READ, XFILE_OPENEXISTING)) // load user-defined image if available
+	{
+		file.Close();
+		noSignalTex = CreateTextureFromFile(API->GetPluginDataPath() << TEXT("\\DatapathPlugin\\nosignal.png"), TRUE);
+	}
+	
+	if (!noSignalTex)
+		noSignalTex = CreateTextureFromFile(TEXT("plugins\\DatapathPlugin\\nosignal.png"), TRUE); // fallback to default image
+
+	if (file.Open(API->GetPluginDataPath() << TEXT("\\DatapathPlugin\\invalidsignal.png"), XFILE_READ, XFILE_OPENEXISTING)) // load user-defined image if available
+	{
+		file.Close();
+		invalidSignalTex = CreateTextureFromFile(API->GetPluginDataPath() << TEXT("\\DatapathPlugin\\invalidsignal.png"), TRUE);
+	}
+	
+	if (!invalidSignalTex)
+		invalidSignalTex = CreateTextureFromFile(TEXT("plugins\\DatapathPlugin\\invalidsignal.png"), TRUE); // fallback to default image
 	
 	return true;
 
@@ -57,6 +70,7 @@ VisionSource::VisionSource()
 	sharedInfo.hDataMutex = OSCreateMutex();
 	sharedInfo.data = &data;
 	sharedInfo.hBitmaps = &hBitmaps;
+	sharedInfo.pSignal = &signal;
 }
 
 VisionSource::~VisionSource()
@@ -91,6 +105,27 @@ void VisionSource::Start()
         return;
 
 	int input = data->GetInt(TEXT("input"));
+	SIGNALTYPE signalType;
+	unsigned long dummy;
+
+	RGBGetInputSignalType(input, &signalType, &dummy, &dummy, &dummy); // no NULL checking? really Datapath, really?
+	OSEnterMutex(sharedInfo.hMutex);
+	switch(signalType)
+	{
+		case RGB_SIGNALTYPE_NOSIGNAL:
+		{
+			signal = inactive;
+			break;
+		}
+		case RGB_SIGNALTYPE_OUTOFRANGE:
+		{
+			signal = invalid;
+			break;
+		}
+		default:
+			signal = active;
+	}
+	OSLeaveMutex(sharedInfo.hMutex);
 
 	if (RGBERROR_NO_ERROR == RGBOpenInput(input, &hRGB))
 	{
@@ -113,6 +148,8 @@ void VisionSource::Start()
 				   }
 
 				   RGBSetModeChangedFn(hRGB, &ResolutionSwitch, (ULONG_PTR)&sharedInfo);
+				   RGBSetNoSignalFn(hRGB, &NoSignal, (ULONG_PTR)&sharedInfo);
+				   RGBSetInvalidSignalFn(hRGB, &InvalidSignal, (ULONG_PTR)&sharedInfo);
 
 				   if (RGBERROR_NO_ERROR == RGBUseOutputBuffers(hRGB, TRUE))
 						bCapturing = true;
@@ -157,7 +194,7 @@ void VisionSource::BeginScene()
 	if (hDC)
 	{
 	// allocate textures
-	while(Buffers < NUM_BUFFERS)
+	for(int i = 0; i < NUM_BUFFERS; i++)
 	{
 		hBitmaps[Buffers] = CreateDIBSection(hDC, lpBitmapInfo[Buffers], DIB_RGB_COLORS, &pBitmapBits[Buffers], NULL, 0);
 		pTextures[Buffers] = CreateTexture(lpBitmapInfo[Buffers]->bmiHeader.biWidth, lpBitmapInfo[Buffers]->bmiHeader.biHeight, GS_BGR, NULL, FALSE, FALSE);
@@ -277,8 +314,26 @@ void VisionSource::Render(const Vect2 &pos, const Vect2 &size)
 		}
 		sharedInfo.qFrames.pop();
 	}
-	else
-		DrawSprite(pTextures[lastTex], 0xFFFFFFFF, pos.x, pos.y, pos.x+size.x, pos.y+size.y);
+	else switch(signal)
+	{
+	case active:
+		{
+			// this is threadsafe: either we acquire the mutex before the callback, and we get the last texture,
+			// or we acquire the mutex after the callback, and there will be a new frame pushed to the queue.
+			DrawSprite(pTextures[lastTex], 0xFFFFFFFF, pos.x, pos.y, pos.x+size.x, pos.y+size.y);
+			break;
+		}
+	case invalid:
+		{
+			DrawSprite(invalidSignalTex, 0xFFFFFFFF, pos.x, pos.y, pos.x+size.x, pos.y+size.y);
+			break;
+		}
+	case inactive:
+		{
+			DrawSprite(noSignalTex, 0xFFFFFFFF, pos.x, pos.y, pos.x+size.x, pos.y+size.y);
+		}
+	}
+
 	OSLeaveMutex(sharedInfo.hMutex);
 
     traceOut;
@@ -290,6 +345,10 @@ void RGBCBKAPI VisionSource::ResolutionSwitch(HWND hWnd, HRGB hRGB, PRGBMODECHAN
 	unsigned long width;
 	unsigned long height;
 
+	OSEnterMutex(sharedInfo->hMutex);
+	(*sharedInfo->pSignal) = active;
+	OSLeaveMutex(sharedInfo->hMutex);
+
 	if (hConfigWnd)
 	{
 		TCHAR modeText[255];
@@ -297,26 +356,61 @@ void RGBCBKAPI VisionSource::ResolutionSwitch(HWND hWnd, HRGB hRGB, PRGBMODECHAN
 		SetWindowText(GetDlgItem(hConfigWnd, IDC_DETECTEDMODE), modeText);
 	}
 	
-	if ((RGBERROR_NO_ERROR == RGBGetCaptureWidthDefault(hRGB, &width)) && (RGBERROR_NO_ERROR == RGBGetCaptureWidthDefault(hRGB, &height)))
+	if ((RGBERROR_NO_ERROR == RGBGetCaptureWidthDefault(hRGB, &width)) && (RGBERROR_NO_ERROR == RGBGetCaptureHeightDefault(hRGB, &height)))
 	{
 		RGBSetCaptureWidth(hRGB, width);
 		RGBSetCaptureHeight(hRGB, height);
-		OSEnterMutex(sharedInfo->hDataMutex);
-		(*sharedInfo->data)->SetInt(TEXT("resolutionWidth"), width);
-		(*sharedInfo->data)->SetInt(TEXT("resolutionWidth"), height);
-		OSLeaveMutex(sharedInfo->hDataMutex);
+		// TODO: set renderCX/CY ?
 	}
 	
 }
+
+void RGBCBKAPI VisionSource::NoSignal(HWND hWnd, HRGB hRGB, ULONG_PTR userData)
+{
+	SharedVisionInfo *sharedInfo = (SharedVisionInfo*)userData;
+	OSEnterMutex(sharedInfo->hMutex);
+	(*sharedInfo->pSignal) = inactive;
+	OSLeaveMutex(sharedInfo->hMutex);
+}
+
+void RGBCBKAPI VisionSource::InvalidSignal(HWND hWnd, HRGB hRGB, unsigned long horClock, unsigned long verClock, ULONG_PTR userData)
+{
+	SharedVisionInfo *sharedInfo = (SharedVisionInfo*)userData;
+	OSEnterMutex(sharedInfo->hMutex);
+	(*sharedInfo->pSignal) = invalid;
+	OSLeaveMutex(sharedInfo->hMutex);
+	
+}
+
 void VisionSource::UpdateSettings()
 {
     traceIn(VisionSource::UpdateSettings);
 
+	int input = data->GetInt(TEXT("input"));
 	int cropping = data->GetInt(TEXT("cropping"));
-	renderCX = data->GetInt(cropping ? TEXT("cropWidth") : TEXT("resolutionWidth"), 640);
-	renderCY = data->GetInt(cropping ? TEXT("cropHeight") : TEXT("resolutionHeight"), 480);
+	int width = 640;
+	int height = 480;
+	bool openInput = (hRGB!=0); // use existing handle if available
+	
+	if (openInput || RGBERROR_NO_ERROR == RGBOpenInput(input, &hRGB))
+	{
+		RGBGetCaptureWidthDefault(hRGB, (unsigned long*)&width);
+		RGBGetCaptureHeightDefault(hRGB, (unsigned long*)&height);
+		if (!openInput) // don't close a handle we didn't open ourselves
+			RGBCloseInput(hRGB);
+	}
+	if (data->GetInt(TEXT("customRes")))
+	{
+		renderCX = data->GetInt(TEXT("resolutionWidth"), width);
+		renderCY = data->GetInt(TEXT("resolutionHeight"), height);
+	}
+	else
+	{
+		renderCX = width;
+		renderCY = height;
+	}
 
-	if (hRGB) // are we capturing?
+	if (hRGB) // are we (still) capturing?
 	{
 		RGBEnableCropping(hRGB, cropping);
 
