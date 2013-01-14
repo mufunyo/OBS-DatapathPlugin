@@ -258,6 +258,7 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 				int cropHeight = configInfo->data->GetInt(TEXT("cropHeight"), (int)cropHeightCur);
 				BOOL cropping = configInfo->data->GetInt(TEXT("cropping"), FALSE);
 				BOOL customRes = configInfo->data->GetInt(TEXT("customRes"), FALSE);
+				BOOL useDMA = configInfo->data->GetInt(TEXT("useDMA"), TRUE);
 
 				SendMessage(GetDlgItem(hwnd, IDC_ADDRWIDTHSPIN), UDM_SETRANGE32, (int)widthMin, (int)widthMax);
 				SendMessage(GetDlgItem(hwnd, IDC_ADDRHEIGHTSPIN), UDM_SETRANGE32, (int)heightMin, (int)heightMax);
@@ -273,6 +274,7 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 				SendMessage(GetDlgItem(hwnd, IDC_HEIGHTSPIN), UDM_SETPOS32, 0, cropHeight);
 				SendMessage(GetDlgItem(hwnd, IDC_CROPPING), BM_SETCHECK, cropping, 0);
 				SendMessage(GetDlgItem(hwnd, IDC_CUSTOMRES), BM_SETCHECK, customRes, 0);
+				SendMessage(GetDlgItem(hwnd, IDC_USEDMA), BM_SETCHECK, useDMA, 0);
 				EnableWindow(GetDlgItem(hwnd, IDC_ADDRWIDTH), customRes);
 				EnableWindow(GetDlgItem(hwnd, IDC_ADDRWIDTHSTATIC), customRes);
 				EnableWindow(GetDlgItem(hwnd, IDC_ADDRWIDTHSPIN), customRes);
@@ -450,6 +452,9 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 
 						BOOL cropping = (BOOL)SendMessage(GetDlgItem(hwnd, IDC_CROPPING), BM_GETCHECK, 0, 0);
 						configInfo->data->SetInt(TEXT("cropping"), cropping);
+
+						BOOL useDMA = (BOOL)SendMessage(GetDlgItem(hwnd, IDC_USEDMA), BM_GETCHECK, 0, 0);
+						configInfo->data->SetInt(TEXT("useDMA"), useDMA);
 
 						configInfo->source->hConfigWnd = NULL;
                     }

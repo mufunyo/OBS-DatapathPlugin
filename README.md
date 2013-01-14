@@ -5,9 +5,9 @@ Datapath Vision series capture plugin for OBS
 
 Licence: GNU GPLv2
 
-Started as an attempt to squeeze more performance out of OBS in conjunction with my capture card, for now this is mostly a proof of concept rather than a full-fledged plugin.
+This is a native capture plugin leveraging the RGBEasy API instead of DirectShow. When using hardware accelerated capture, it captures quite a bit faster than OBS' native Device Source, and uses no extra CPU. Additionally, it offers many handy features unique to the RGBEasy API, like automatically changing the capture resolution when the input resolution changes.
 
-This is a native capture plugin leveraging the RGBEasy API instead of DirectShow. Right now it seems to be marginally faster than OBS' own DirectShow plugin sometimes, and quite a bit slower other times. I am attributing this mostly to the extra memcopy I have to do between the capture driver DMA surface and the Direct3D mapped texture, but there are other strange factors at work on my PC.
+The plugin is heavily based off of Jim's DirectShow plugin (as it was the only plugin available to me at the time). Thanks, Jim!
 
 It has so far only been tested with the VisionRGB-E2s, but it should be compatible with the following cards:
 
@@ -24,17 +24,46 @@ Datapath VisionSDI2 / EMS XtremeSDI-2
 Implemented features:
 - Video capture (yay!)
 - Frame dropping
+- Direct DMA to Direct3D mapped texture
 - Resolution autodetection
+- Automatic resolution switching on video mode change
+- Cropping (real-time updated)
+- Input port selection (also real-time)
+- No signal / signal out of range notices (can be user-defined)
 
 Planned features:
-- Direct DMA to Direct3D mapped texture (I am having unusual problems getting this working)
-- Input port selection
-- Cropping
-- Automatic resolution switching
 - Picture adjustment controls
 - Picture adjustment presets
 - Colour space selection
 - Deinterlacing
 - Prescaling (for 15KHz VGA sources)
+
+Changelog:
+20130114
+- finally fix DMA capture!
+   - should be configurable but is broken so hardcoded for now
+
+20130113
+- implement automatic resolution (now default)
+- implement no signal / invalid signal images:
+   - default ones in OBS\plugins\DatapathPlugin
+   - user-defined ones in %APPDATA%\OBS\pluginData\DatapathPlugin
+- fix stupidity
+
+20130110
+- update crop settings in real-time
+- update input selection and detected mode in real-time
+- implement mode change callback
+- add red/green/blue gain controls to GUI (unused)
+- add per-mode settings retention checkbox to GUI (unused)
+
+20130108
+- implement cropping
+- swap top/left with left/top in config dialogue
+- implement automatic bitmap/texture resize
+- implement input selection instead of hardcoding to 0
+- fix memory leaks
+- add comments
+- clean up old cruft
 
 (Note that I do not work for nor am affiliated with Datapath other than simply being one of their customers. Depending on things, I may never get to implementing certain planned features or I could stop developing it entirely.)

@@ -124,7 +124,8 @@ BEGIN
     SCROLLBAR       IDC_CONTRAST4,258,192,97,14,WS_DISABLED | WS_TABSTOP
     EDITTEXT        IDC_CONTRASTVALUE4,361,192,24,14,ES_AUTOHSCROLL | WS_DISABLED
     GROUPBOX        "Colour Adjustment",IDC_CAPTSETTINGS2,186,90,205,124,WS_GROUP
-    CONTROL         "Remember last used settings on mode change",IDC_CROPPING2,
+    CONTROL         "Use hardware accelerated capture",IDC_USEDMA,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,168,127,10
+    CONTROL         "Remember last used settings on mode change",IDC_CROPPING3,
                     "Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,7,186,163,10
 END
 

@@ -54,6 +54,7 @@
 #define IDC_DETECTEDMODE                1038
 #define IDC_CROPPINGOFF                 1039
 #define IDC_CROPPING2                   1039
+#define IDC_USEDMA                      1039
 #define IDC_TOPSTATIC                   1040
 #define IDC_LEFTSTATIC                  1041
 #define IDC_WIDTHSTATIC                 1042
@@ -68,6 +69,7 @@
 #define IDC_BRIGHTNESSSTATIC            1051
 #define IDC_CONTRASTSTATIC              1052
 #define IDC_RESET                       1053
+#define IDC_CROPPING3                   1054
 #define IDC_CONTRASTSTATIC2             1055
 #define IDC_CONTRASTSTATIC3             1057
 #define IDC_CONTRASTSTATIC4             1059

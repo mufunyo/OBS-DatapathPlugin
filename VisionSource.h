@@ -43,6 +43,7 @@ enum SignalState
 struct SharedVisionInfo
 {
 	bool *pCapturing;
+	bool *pUseDMA;
 	Texture *(*pTextures)[NUM_BUFFERS];
 	LPBITMAPINFO (*lpBitmapInfo)[NUM_BUFFERS];
 	HBITMAP (*hBitmaps)[NUM_BUFFERS];
@@ -65,6 +66,7 @@ class VisionSource : public ImageSource
     XElement			*data;
 	Texture				*texture;
     bool				bCapturing;
+	bool				bUseDMA;
 	LPBITMAPINFO		lpBitmapInfo[NUM_BUFFERS];
 	PVOID				pBitmapBits[NUM_BUFFERS];
 	HBITMAP				hBitmaps[NUM_BUFFERS];
