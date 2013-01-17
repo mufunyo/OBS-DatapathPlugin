@@ -199,6 +199,9 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 				configInfo->cropHeightMin = 0;
 				configInfo->hRGB = 0;
 
+				signed long horOffsetCur = 0, horOffsetMin = 0, horOffsetMax = 0, phaseCur = 0, phaseMin = 0, phaseMax = 0, verOffsetCur = 0, verOffsetMin = 0, verOffsetMax = 0, blackLevelCur = 0, blackLevelMin = 0, blackLevelMax = 0, gainRedCur = 0, gainRedMin = 0, gainRedMax = 0, gainGreenCur = 0, gainGreenMin = 0, gainGreenMax = 0, gainBlueCur = 0, gainBlueMin = 0, gainBlueMax = 0, brightCur = 0, brightMin = 0, brightMax = 0, contCur = 0, contMin = 0, contMax = 0;
+				unsigned long horScaleCur = 0, horScaleMin = 0, horScaleMax = 0;
+
 				RGBGetNumberOfInputs(&configInfo->inputs);
 				configInfo->input = configInfo->data->GetInt(TEXT("input"));
 				configInfo->input = min((int)configInfo->inputs, configInfo->input);
@@ -213,6 +216,7 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 
 				if (configInfo->hRGB)
 				{
+					signed long dummy;
 					RGBGetCaptureWidthDefault(configInfo->hRGB, &configInfo->widthCur);
 					RGBGetCaptureWidthMinimum(configInfo->hRGB, &configInfo->widthMin);
 					RGBGetCaptureWidthMaximum(configInfo->hRGB, &configInfo->widthMax);
@@ -221,6 +225,46 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 					RGBGetCaptureHeightMaximum(configInfo->hRGB, &configInfo->heightMax);
 					RGBGetCropping(configInfo->hRGB, &configInfo->cropTopCur, &configInfo->cropLeftCur, &configInfo->cropWidthCur, &configInfo->cropHeightCur);
 					RGBGetCroppingMinimum(configInfo->hRGB, &configInfo->cropTopMin, &configInfo->cropLeftMin, &configInfo->cropWidthMin, &configInfo->cropHeightMin);
+
+					RGBGetHorPositionDefault(configInfo->hRGB, &horOffsetCur);
+					RGBGetHorPositionMinimum(configInfo->hRGB, &horOffsetMin);
+					RGBGetHorPositionMaximum(configInfo->hRGB, &horOffsetMax);
+					RGBGetHorScaleDefault(configInfo->hRGB, &horScaleCur);
+					RGBGetHorScaleMinimum(configInfo->hRGB, &horScaleMin);
+					RGBGetHorScaleMaximum(configInfo->hRGB, &horScaleMax);
+					RGBGetPhaseDefault(configInfo->hRGB, &phaseCur);
+					RGBGetPhaseMinimum(configInfo->hRGB, &phaseMin);
+					RGBGetPhaseMaximum(configInfo->hRGB, &phaseMax);
+					RGBGetVerPositionDefault(configInfo->hRGB, &verOffsetCur);
+					RGBGetVerPositionMinimum(configInfo->hRGB, &verOffsetMin);
+					RGBGetVerPositionMaximum(configInfo->hRGB, &verOffsetMax);
+					RGBGetBlackLevelDefault(configInfo->hRGB, &blackLevelCur);
+					RGBGetBlackLevelMinimum(configInfo->hRGB, &blackLevelMin);
+					RGBGetBlackLevelMaximum(configInfo->hRGB, &blackLevelMax);
+					RGBGetBrightnessDefault(configInfo->hRGB, &brightCur);
+					RGBGetBrightnessMinimum(configInfo->hRGB, &brightMin);
+					RGBGetBrightnessMaximum(configInfo->hRGB, &brightMax);
+					brightMin = brightMin - brightCur;
+					brightMax = brightMax - brightCur;
+					brightCur = brightCur + brightMin;
+					RGBGetContrastDefault(configInfo->hRGB, &contCur);
+					RGBGetContrastMinimum(configInfo->hRGB, &contMin);
+					RGBGetContrastMaximum(configInfo->hRGB, &contMax);
+					contMin = contMin - contCur;
+					contMax = contMax - contCur;
+					contCur = contCur + contMin;
+					RGBGetColourBalanceDefault(configInfo->hRGB, &dummy, &dummy, &dummy, &gainRedCur, &gainGreenCur, &gainBlueCur);
+					RGBGetColourBalanceMinimum(configInfo->hRGB, &dummy, &dummy, &dummy, &gainRedMin, &gainGreenMin, &gainBlueMin);
+					RGBGetColourBalanceMaximum(configInfo->hRGB, &dummy, &dummy, &dummy, &gainRedMax, &gainGreenMax, &gainBlueMax);
+					gainRedMin = gainRedMin - gainRedCur;
+					gainRedMax = gainRedMax - gainRedCur;
+					gainRedCur = gainRedCur + gainRedMin;
+					gainGreenMin = gainGreenMin - gainGreenCur;
+					gainGreenMax = gainGreenMax - gainGreenCur;
+					gainGreenCur = gainGreenCur + gainGreenMin;
+					gainBlueMin = gainBlueMin - gainBlueCur;
+					gainBlueMax = gainBlueMax - gainBlueCur;
+					gainBlueCur = gainBlueCur + gainBlueMin;
 				}
 				
 				if (configInfo->source && configInfo->hRGB != configInfo->source->hRGB)
@@ -254,18 +298,106 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 				configInfo->cropHeight = min(configInfo->cropHeight, (int)cropHeightMax);
 				configInfo->cropWidth = min(configInfo->cropWidth, (int)cropWidthMax);
 
+				int brightness = configInfo->data->GetInt(TEXT("brightness"), brightCur);
+				int contrast = configInfo->data->GetInt(TEXT("contrast"), contCur);
+				int horOffset = configInfo->data->GetInt(TEXT("horOffset"), horOffsetCur);
+				int horScale = configInfo->data->GetInt(TEXT("horScale"), horScaleCur);
+				int phase = configInfo->data->GetInt(TEXT("phase"), phaseCur);
+				int verOffset = configInfo->data->GetInt(TEXT("verOffset"), verOffsetCur);
+				int blackLevel = configInfo->data->GetInt(TEXT("blackLevel"), blackLevelCur);
+				int gainRed = configInfo->data->GetInt(TEXT("gainRed"), gainRedCur);
+				int gainGreen = configInfo->data->GetInt(TEXT("gainGreen"), gainGreenCur);
+				int gainBlue = configInfo->data->GetInt(TEXT("gainBlue"), gainBlueCur);
+
+				SCROLLINFO scrollInfo;
+				scrollInfo.cbSize = sizeof(SCROLLINFO);
+				scrollInfo.fMask = SIF_ALL;
+				scrollInfo.nPage = 1;
+
+				scrollInfo.nMin = brightMin;
+				scrollInfo.nMax = brightMax;
+				scrollInfo.nPos = brightness;
+				SetScrollInfo(GetDlgItem(hwnd, IDC_BRIGHTNESSSCROLL), SB_CTL, &scrollInfo, TRUE);
+				scrollInfo.nMin = contMin;
+				scrollInfo.nMax = contMax;
+				scrollInfo.nPos = contrast;
+				SetScrollInfo(GetDlgItem(hwnd, IDC_CONTRASTSCROLL), SB_CTL, &scrollInfo, TRUE);
+				scrollInfo.nMin = horOffsetMin;
+				scrollInfo.nMax = horOffsetMax;
+				scrollInfo.nPos = horOffset;
+				SetScrollInfo(GetDlgItem(hwnd, IDC_HOROFFSETSCROLL), SB_CTL, &scrollInfo, TRUE);
+				scrollInfo.nMin = horScaleMin;
+				scrollInfo.nMax = horScaleMax;
+				scrollInfo.nPos = horScale;
+				SetScrollInfo(GetDlgItem(hwnd, IDC_HORSCALESCROLL), SB_CTL, &scrollInfo, TRUE);
+				scrollInfo.nMin = phaseMin;
+				scrollInfo.nMax = phaseMax;
+				scrollInfo.nPos = phase;
+				SetScrollInfo(GetDlgItem(hwnd, IDC_PHASESCROLL), SB_CTL, &scrollInfo, TRUE);
+				scrollInfo.nMin = verOffsetMin;
+				scrollInfo.nMax = verOffsetMax;
+				scrollInfo.nPos = verOffset;
+				SetScrollInfo(GetDlgItem(hwnd, IDC_VEROFFSETSCROLL), SB_CTL, &scrollInfo, TRUE);
+				scrollInfo.nMin = blackLevelMin;
+				scrollInfo.nMax = blackLevelMax;
+				scrollInfo.nPos = blackLevel;
+				SetScrollInfo(GetDlgItem(hwnd, IDC_BLACKLEVELSCROLL), SB_CTL, &scrollInfo, TRUE);
+				scrollInfo.nMin = gainRedMin;
+				scrollInfo.nMax = gainRedMax;
+				scrollInfo.nPos = gainRed;
+				SetScrollInfo(GetDlgItem(hwnd, IDC_GAINREDSCROLL), SB_CTL, &scrollInfo, TRUE);
+				scrollInfo.nMin = gainGreenMin;
+				scrollInfo.nMax = gainGreenMax;
+				scrollInfo.nPos = gainGreen;
+				SetScrollInfo(GetDlgItem(hwnd, IDC_GAINGREENSCROLL), SB_CTL, &scrollInfo, TRUE);
+				scrollInfo.nMin = gainBlueMin;
+				scrollInfo.nMax = gainBlueMax;
+				scrollInfo.nPos = gainBlue;
+				SetScrollInfo(GetDlgItem(hwnd, IDC_GAINBLUESCROLL), SB_CTL, &scrollInfo, TRUE);
+
+
 				SendMessage(GetDlgItem(hwnd, IDC_ADDRWIDTHSPIN), UDM_SETRANGE32, (int)configInfo->widthMin, (int)configInfo->widthMax);
 				SendMessage(GetDlgItem(hwnd, IDC_ADDRHEIGHTSPIN), UDM_SETRANGE32, (int)configInfo->heightMin, (int)configInfo->heightMax);
 				SendMessage(GetDlgItem(hwnd, IDC_TOPSPIN), UDM_SETRANGE32, configInfo->cropTopMin, configInfo->heightCur);
 				SendMessage(GetDlgItem(hwnd, IDC_LEFTSPIN), UDM_SETRANGE32, configInfo->cropLeftMin, configInfo->widthCur);
 				SendMessage(GetDlgItem(hwnd, IDC_WIDTHSPIN), UDM_SETRANGE32, (int)configInfo->cropWidthMin, (int)cropWidthMax);
 				SendMessage(GetDlgItem(hwnd, IDC_HEIGHTSPIN), UDM_SETRANGE32, (int)configInfo->cropHeightMin, (int)cropHeightMax);
+				SendMessage(GetDlgItem(hwnd, IDC_BRIGHTNESSSPIN), UDM_SETRANGE32, brightMin, brightMax);
+				SendMessage(GetDlgItem(hwnd, IDC_CONTRASTSPIN), UDM_SETRANGE32, contMin, contMax);
+				SendMessage(GetDlgItem(hwnd, IDC_HOROFFSETSPIN), UDM_SETRANGE32, horOffsetMin, horOffsetMax);
+				SendMessage(GetDlgItem(hwnd, IDC_HORSCALESPIN), UDM_SETRANGE32, horScaleMin, horScaleMax);
+				SendMessage(GetDlgItem(hwnd, IDC_PHASESPIN), UDM_SETRANGE32, phaseMin, phaseMax);
+				SendMessage(GetDlgItem(hwnd, IDC_VEROFFSETSPIN), UDM_SETRANGE32, verOffsetMin, verOffsetMax);
+				SendMessage(GetDlgItem(hwnd, IDC_BLACKLEVELSPIN), UDM_SETRANGE32, blackLevelMin, blackLevelMax);
+				SendMessage(GetDlgItem(hwnd, IDC_GAINREDSPIN), UDM_SETRANGE32, gainRedMin, gainRedMax);
+				SendMessage(GetDlgItem(hwnd, IDC_GAINGREENSPIN), UDM_SETRANGE32, gainGreenMin, gainGreenMax);
+				SendMessage(GetDlgItem(hwnd, IDC_GAINBLUESPIN), UDM_SETRANGE32, gainBlueMin, gainBlueMax);
 				SendMessage(GetDlgItem(hwnd, IDC_ADDRWIDTHSPIN), UDM_SETPOS32, 0, configInfo->width);
 				SendMessage(GetDlgItem(hwnd, IDC_ADDRHEIGHTSPIN), UDM_SETPOS32, 0, configInfo->height);
 				SendMessage(GetDlgItem(hwnd, IDC_TOPSPIN), UDM_SETPOS32, 0, configInfo->cropTop);
 				SendMessage(GetDlgItem(hwnd, IDC_LEFTSPIN), UDM_SETPOS32, 0, configInfo->cropLeft);
 				SendMessage(GetDlgItem(hwnd, IDC_WIDTHSPIN), UDM_SETPOS32, 0, configInfo->cropWidth);
 				SendMessage(GetDlgItem(hwnd, IDC_HEIGHTSPIN), UDM_SETPOS32, 0, configInfo->cropHeight);
+				SendMessage(GetDlgItem(hwnd, IDC_BRIGHTNESSSPIN), UDM_SETPOS32, 0, brightness);
+				SendMessage(GetDlgItem(hwnd, IDC_CONTRASTSPIN), UDM_SETPOS32, 0, contrast);
+				SendMessage(GetDlgItem(hwnd, IDC_HOROFFSETSPIN), UDM_SETPOS32, 0, horOffset);
+				SendMessage(GetDlgItem(hwnd, IDC_HORSCALESPIN), UDM_SETPOS32, 0, horScale);
+				SendMessage(GetDlgItem(hwnd, IDC_PHASESPIN), UDM_SETPOS32, 0, phase);
+				SendMessage(GetDlgItem(hwnd, IDC_VEROFFSETSPIN), UDM_SETPOS32, 0, blackLevel);
+				SendMessage(GetDlgItem(hwnd, IDC_BLACKLEVELSPIN), UDM_SETPOS32, 0, verOffset);
+				SendMessage(GetDlgItem(hwnd, IDC_GAINREDSPIN), UDM_SETPOS32, 0, gainRed);
+				SendMessage(GetDlgItem(hwnd, IDC_GAINGREENSPIN), UDM_SETPOS32, 0, gainGreen);
+				SendMessage(GetDlgItem(hwnd, IDC_GAINBLUESPIN), UDM_SETPOS32, 0, gainBlue);
+				SendMessage(GetDlgItem(hwnd, IDC_BRIGHTNESSSCROLL), SBM_SETPOS, brightness, TRUE);
+				SendMessage(GetDlgItem(hwnd, IDC_HOROFFSETSCROLL), SBM_SETPOS, horOffset, TRUE);
+				SendMessage(GetDlgItem(hwnd, IDC_HORSCALESCROLL), SBM_SETPOS, horScale, TRUE);
+				SendMessage(GetDlgItem(hwnd, IDC_PHASESCROLL), SBM_SETPOS, phase, TRUE);
+				SendMessage(GetDlgItem(hwnd, IDC_VEROFFSETSCROLL), SBM_SETPOS, blackLevel, TRUE);
+				SendMessage(GetDlgItem(hwnd, IDC_BLACKLEVELSCROLL), SBM_SETPOS, verOffset, TRUE);
+				SendMessage(GetDlgItem(hwnd, IDC_GAINREDSCROLL), SBM_SETPOS, gainRed, TRUE);
+				SendMessage(GetDlgItem(hwnd, IDC_GAINGREENSCROLL), SBM_SETPOS, gainGreen, TRUE);
+				SendMessage(GetDlgItem(hwnd, IDC_GAINBLUESCROLL), SBM_SETPOS, gainBlue, TRUE);
+				SendMessage(GetDlgItem(hwnd, IDC_CONTRASTSCROLL), SBM_SETPOS, contrast, TRUE);
 				SendMessage(GetDlgItem(hwnd, IDC_CROPPING), BM_SETCHECK, configInfo->cropping, 0);
 				SendMessage(GetDlgItem(hwnd, IDC_CUSTOMRES), BM_SETCHECK, configInfo->customRes, 0);
 				SendMessage(GetDlgItem(hwnd, IDC_USEDMA), BM_SETCHECK, configInfo->useDMA, 0);
@@ -290,6 +422,105 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 
                 return TRUE;
             }
+
+		case WM_HSCROLL: // this code is mainly horrible because scrollbars aren't meant to be used as slider controls ^_^
+			{
+				int minimum, maximum, spinner;
+				int ctrl = GetDlgCtrlID((HWND)lParam);
+				int value = GetScrollPos((HWND)lParam, SB_CTL);
+				GetScrollRange((HWND)lParam, SB_CTL, &minimum, &maximum);
+
+				switch(ctrl) // LOOK UP ALL THE THINGS!
+				{
+					case IDC_HOROFFSETSCROLL:
+					{
+						spinner = IDC_HOROFFSETSPIN;
+						break;
+					}
+					case IDC_HORSCALESCROLL:
+					{
+						spinner = IDC_HORSCALESPIN;
+						break;
+					}
+					case IDC_PHASESCROLL:
+					{
+						spinner = IDC_PHASESPIN;
+						break;
+					}
+					case IDC_VEROFFSETSCROLL:
+					{
+						spinner = IDC_VEROFFSETSPIN;
+						break;
+					}
+					case IDC_BLACKLEVELSCROLL:
+					{
+						spinner = IDC_BLACKLEVELSPIN;
+						break;
+					}
+					case IDC_BRIGHTNESSSCROLL:
+					{
+						spinner = IDC_BRIGHTNESSSPIN;
+						break;
+					}
+					case IDC_CONTRASTSCROLL:
+					{
+						spinner = IDC_CONTRASTSPIN;
+						break;
+					}
+					case IDC_GAINREDSCROLL:
+					{
+						spinner = IDC_GAINREDSPIN;
+						break;
+					}
+					case IDC_GAINGREENSCROLL:
+					{
+						spinner = IDC_GAINGREENSPIN;
+						break;
+					}
+					case IDC_GAINBLUESCROLL:
+					{
+						spinner = IDC_GAINBLUESPIN;
+						break;
+					}
+				}
+				switch(LOWORD(wParam))
+				{
+				case SB_THUMBTRACK:
+				case SB_THUMBPOSITION:
+					{
+						value = (signed short)HIWORD(wParam);
+						break;
+					}
+				case SB_LINELEFT:
+					{
+						value = max(minimum, value--);
+						break;
+					}
+				case SB_LINERIGHT:
+					{
+						value = min(maximum, value++);
+						break;
+					}
+				case SB_PAGELEFT:
+					{
+						value = max(minimum, value - 5);
+						break;
+					}
+				case SB_PAGERIGHT:
+					{
+						value = min(maximum, value + 5);
+						break;
+					}
+				case SB_ENDSCROLL:
+					{
+						value = (int)SendMessage(GetDlgItem(hwnd, spinner), UDM_GETPOS32, 0, 0);
+						SendMessage(GetDlgItem(hwnd, ctrl), SBM_SETPOS, value, TRUE);
+						return 0;
+					}
+				}
+				SendMessage(GetDlgItem(hwnd, spinner), UDM_SETPOS32, NULL, value);
+				break;
+			}
 
         case WM_COMMAND:
             switch(LOWORD(wParam))
@@ -325,9 +556,9 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 							ConfigVisionInfo *configInfo = (ConfigVisionInfo*)GetWindowLongPtr(hwnd, DWLP_USER);
 							if ((LONG)configInfo > DWLP_USER)
 							{
-								OSEnterMutex(configInfo->hMutex);
 								configInfo->cropLeft = (int)SendMessage(GetDlgItem(hwnd, IDC_LEFTSPIN), UDM_GETPOS32, 0, 0);
 								configInfo->width = (int)SendMessage(GetDlgItem(hwnd, IDC_WIDTHSPIN), UDM_GETPOS32, 0, 0);
+								SendMessage(GetDlgItem(hwnd, IDC_LEFTSPIN), UDM_SETPOS32, NULL, configInfo->cropLeft);
 
 								if (configInfo->source && configInfo->source->hRGB)
 									SetCropping(configInfo->source->hRGB, &configInfo->cropLeft, NULL, NULL, NULL);
@@ -336,7 +567,6 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 								if (configInfo->width > (int)configInfo->widthMax)
 									SendMessage(GetDlgItem(hwnd, IDC_WIDTHSPIN), UDM_SETPOS32, NULL, configInfo->widthMax);
 								SendMessage(GetDlgItem(hwnd, IDC_WIDTHSPIN), UDM_SETRANGE32, NULL, configInfo->widthMax);
-								OSLeaveMutex(configInfo->hMutex);
 							}
 							break;
 						}
@@ -350,6 +580,7 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 							{
 								configInfo->cropTop = (int)SendMessage(GetDlgItem(hwnd, IDC_TOPSPIN), UDM_GETPOS32, 0, 0);
 								configInfo->height = (int)SendMessage(GetDlgItem(hwnd, IDC_HEIGHTSPIN), UDM_GETPOS32, 0, 0);
+								SendMessage(GetDlgItem(hwnd, IDC_TOPSPIN), UDM_SETPOS32, NULL, configInfo->cropTop);
 
 								if (configInfo->source && configInfo->source->hRGB)
 									SetCropping(configInfo->source->hRGB, NULL, &configInfo->cropTop, NULL, NULL);
@@ -367,10 +598,12 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 						if (HIWORD(wParam) == EN_CHANGE)
 						{
 							ConfigVisionInfo *configInfo = (ConfigVisionInfo*)GetWindowLongPtr(hwnd, DWLP_USER);
-							if ((LONG)configInfo > DWLP_USER && configInfo->source && configInfo->source->hRGB)
+							if ((LONG)configInfo > DWLP_USER)
 							{
-								configInfo->width = (int)SendMessage(GetDlgItem(hwnd, IDC_WIDTHSPIN), UDM_GETPOS32, 0, 0);
-								SetCropping(configInfo->source->hRGB, NULL, NULL, &configInfo->width, NULL);
+								configInfo->cropWidth = (int)SendMessage(GetDlgItem(hwnd, IDC_WIDTHSPIN), UDM_GETPOS32, 0, 0);
+								SendMessage(GetDlgItem(hwnd, IDC_WIDTHSPIN), UDM_SETPOS32, NULL, configInfo->cropWidth);
+								if (configInfo->source && configInfo->source->hRGB)
+									SetCropping(configInfo->source->hRGB, NULL, NULL, &configInfo->cropWidth, NULL);
 							}
 							break;
 						}
@@ -380,10 +613,12 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 						if (HIWORD(wParam) == EN_CHANGE)
 						{
 							ConfigVisionInfo *configInfo = (ConfigVisionInfo*)GetWindowLongPtr(hwnd, DWLP_USER);
-							if ((LONG)configInfo > DWLP_USER && configInfo->source && configInfo->source->hRGB)
+							if ((LONG)configInfo > DWLP_USER)
 							{
-								configInfo->height = (int)SendMessage(GetDlgItem(hwnd, IDC_HEIGHTSPIN), UDM_GETPOS32, 0, 0);
-								SetCropping(configInfo->source->hRGB, NULL, NULL, NULL, &configInfo->height);
+								configInfo->cropHeight = (int)SendMessage(GetDlgItem(hwnd, IDC_HEIGHTSPIN), UDM_GETPOS32, 0, 0);
+								SendMessage(GetDlgItem(hwnd, IDC_HEIGHTSPIN), UDM_SETPOS32, NULL, configInfo->cropHeight);
+								if (configInfo->source && configInfo->source->hRGB)
+									SetCropping(configInfo->source->hRGB, NULL, NULL, NULL, &configInfo->cropHeight);
 							}
 							break;
 						}
@@ -439,6 +674,76 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 							RGBSetCaptureWidth(configInfo->source->hRGB, width);
 							RGBSetCaptureHeight(configInfo->source->hRGB, height);
 						}
+						break;
+					}
+				case IDC_HOROFFSET:
+					{
+						int horoffset = (int)SendMessage(GetDlgItem(hwnd, IDC_HOROFFSETSPIN), UDM_GETPOS32, 0, 0);
+						SendMessage(GetDlgItem(hwnd, IDC_HOROFFSETSPIN), UDM_SETPOS32, NULL, horoffset);
+						SendMessage(GetDlgItem(hwnd, IDC_HOROFFSETSCROLL), SBM_SETPOS, horoffset, TRUE);
+						break;
+					}
+				case IDC_HORSCALE:
+					{
+						int horscale = (int)SendMessage(GetDlgItem(hwnd, IDC_HORSCALESPIN), UDM_GETPOS32, 0, 0);
+						SendMessage(GetDlgItem(hwnd, IDC_HORSCALESPIN), UDM_SETPOS32, NULL, horscale);
+						SendMessage(GetDlgItem(hwnd, IDC_HORSCALESCROLL), SBM_SETPOS, horscale, TRUE);
+						break;
+					}
+				case IDC_PHASE:
+					{
+						int phase = (int)SendMessage(GetDlgItem(hwnd, IDC_PHASESPIN), UDM_GETPOS32, 0, 0);
+						SendMessage(GetDlgItem(hwnd, IDC_PHASESPIN), UDM_SETPOS32, NULL, phase);
+						SendMessage(GetDlgItem(hwnd, IDC_PHASESCROLL), SBM_SETPOS, phase, TRUE);
+						break;
+					}
+				case IDC_VEROFFSET:
+					{
+						int veroffset = (int)SendMessage(GetDlgItem(hwnd, IDC_VEROFFSETSPIN), UDM_GETPOS32, 0, 0);
+						SendMessage(GetDlgItem(hwnd, IDC_VEROFFSETSPIN), UDM_SETPOS32, NULL, veroffset);
+						SendMessage(GetDlgItem(hwnd, IDC_VEROFFSETSCROLL), SBM_SETPOS, veroffset, TRUE);
+						break;
+					}
+				case IDC_BLACKLEVEL:
+					{
+						int blacklevel = (int)SendMessage(GetDlgItem(hwnd, IDC_BLACKLEVELSPIN), UDM_GETPOS32, 0, 0);
+						SendMessage(GetDlgItem(hwnd, IDC_BLACKLEVELSPIN), UDM_SETPOS32, NULL, blacklevel);
+						SendMessage(GetDlgItem(hwnd, IDC_BLACKLEVELSCROLL), SBM_SETPOS, blacklevel, TRUE);
+						break;
+					}
+				case IDC_BRIGHTNESS:
+					{
+						int brightness = (int)SendMessage(GetDlgItem(hwnd, IDC_BRIGHTNESSSPIN), UDM_GETPOS32, 0, 0);
+						SendMessage(GetDlgItem(hwnd, IDC_BRIGHTNESSSPIN), UDM_SETPOS32, NULL, brightness);
+						SendMessage(GetDlgItem(hwnd, IDC_BRIGHTNESSSCROLL), SBM_SETPOS, brightness, TRUE);
+						break;
+					}
+				case IDC_CONTRAST:
+					{
+						int contrast = (int)SendMessage(GetDlgItem(hwnd, IDC_CONTRASTSPIN), UDM_GETPOS32, 0, 0);
+						SendMessage(GetDlgItem(hwnd, IDC_CONTRASTSPIN), UDM_SETPOS32, NULL, contrast);
+						SendMessage(GetDlgItem(hwnd, IDC_CONTRASTSCROLL), SBM_SETPOS, contrast, TRUE);
+						break;
+					}
+				case IDC_GAINRED:
+					{
+						int gainred = (int)SendMessage(GetDlgItem(hwnd, IDC_GAINREDSPIN), UDM_GETPOS32, 0, 0);
+						SendMessage(GetDlgItem(hwnd, IDC_GAINREDSPIN), UDM_SETPOS32, NULL, gainred);
+						SendMessage(GetDlgItem(hwnd, IDC_GAINREDSCROLL), SBM_SETPOS, gainred, TRUE);
+						break;
+					}
+				case IDC_GAINGREEN:
+					{
+						int gaingreen = (int)SendMessage(GetDlgItem(hwnd, IDC_GAINGREENSPIN), UDM_GETPOS32, 0, 0);
+						SendMessage(GetDlgItem(hwnd, IDC_GAINGREENSPIN), UDM_SETPOS32, NULL, gaingreen);
+						SendMessage(GetDlgItem(hwnd, IDC_GAINGREENSCROLL), SBM_SETPOS, gaingreen, TRUE);
+						break;
+					}
+				case IDC_GAINBLUE:
+					{
+						int gainblue = (int)SendMessage(GetDlgItem(hwnd, IDC_GAINBLUESPIN), UDM_GETPOS32, 0, 0);
+						SendMessage(GetDlgItem(hwnd, IDC_GAINBLUESPIN), UDM_SETPOS32, NULL, gainblue);
+						SendMessage(GetDlgItem(hwnd, IDC_GAINBLUESCROLL), SBM_SETPOS, gainblue, TRUE);
 						break;
 					}
                 case IDOK:
