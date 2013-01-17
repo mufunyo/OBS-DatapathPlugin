@@ -197,6 +197,7 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 				configInfo->cropWidthMin = 0;
 				configInfo->cropHeightCur = 0;
 				configInfo->cropHeightMin = 0;
+				configInfo->hRGB = 0;
 
 				RGBGetNumberOfInputs(&configInfo->inputs);
 				configInfo->input = configInfo->data->GetInt(TEXT("input"));
@@ -489,7 +490,7 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
                 case IDCANCEL:
 					ConfigVisionInfo *configInfo = (ConfigVisionInfo*)GetWindowLongPtr(hwnd, DWLP_USER);
 					configInfo->source->hConfigWnd = NULL;
-					if (configInfo->hRGB != configInfo->source->hRGB)
+					if (!configInfo->source || configInfo->hRGB != configInfo->source->hRGB)
 						RGBCloseInput(configInfo->hRGB);
                     EndDialog(hwnd, LOWORD(wParam));
                     break;
