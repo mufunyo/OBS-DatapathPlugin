@@ -51,10 +51,37 @@ struct ConfigVisionInfo
     XElement *data;
 	VisionSource *source;
 	HWND hConfigWnd;
+	HANDLE hMutex;
+	HRGB hRGB;
+	BOOL cropping;
+	BOOL customRes;
+	BOOL useDMA;
+	unsigned long inputs;
+	int input;
+	int width;
+	unsigned long widthCur;
+	unsigned long widthMin;
+	unsigned long widthMax;
+	int height;
+	unsigned long heightCur;
+	unsigned long heightMin;
+	unsigned long heightMax;
+	int cropTop;
+	long cropTopCur;
+	long cropTopMin;
+	int cropLeft;
+	long cropLeftCur;
+	long cropLeftMin;
+	int cropWidth;
+	unsigned long cropWidthCur;
+	unsigned long cropWidthMin;
+	int cropHeight;
+	unsigned long cropHeightCur;
+	unsigned long cropHeightMin;
 };
 
 void CreateBitmapInformation(BITMAPINFO *pBitmapInfo, int width, int height, int bitCount);
-void SetCropping(LONG user, int* pLeft, int* pTop, int* pWidth, int* pHeight);
+void SetCropping(HRGB hRGB, int* pLeft, int* pTop, int* pWidth, int* pHeight);
 void GetModeText(unsigned long input, TSTR string, size_t size);
 static RGBMODECHANGEDFN ModeChanged;
 

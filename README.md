@@ -32,6 +32,7 @@ Implemented features:
 - No signal / signal out of range notices (can be user-defined)
 
 Planned features:
+- Flip/rotate
 - Picture adjustment controls
 - Picture adjustment presets
 - Colour space selection
