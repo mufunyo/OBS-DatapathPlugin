@@ -25,7 +25,7 @@
 #include <rgberror.h>
 #include <queue>
 
-#define NUM_BUFFERS 2
+#define NUM_BUFFERS 3
 
 struct CapturedFrame
 {

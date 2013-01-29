@@ -522,7 +522,73 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 				break;
 			}
 
-        case WM_COMMAND:
+		case WM_NOTIFY:
+			{
+				LPNMHDR nmh = (LPNMHDR)lParam;
+				if (nmh->code == UDN_DELTAPOS)
+				{
+					ConfigVisionInfo *configInfo = (ConfigVisionInfo*)GetWindowLongPtr(hwnd, DWLP_USER);
+					if ((LONG)configInfo > DWLP_USER)
+					{
+						HWND hOpposingCtrl;
+						int *pVal;
+						int *pOpposingVal;
+						int *pOpposingMinVal;
+						int *pOpposingMaxVal;
+						int *pOpposingCurVal;
+						switch (nmh->idFrom)
+						{
+							case IDC_LEFTSPIN:
+								{
+									hOpposingCtrl = GetDlgItem(hwnd, IDC_WIDTHSPIN);
+									pVal = &configInfo->cropLeft;
+									pOpposingVal = &configInfo->width;
+									pOpposingMinVal = (int*)&configInfo->widthMin;
+									pOpposingMaxVal = (int*)&configInfo->widthMax;
+									pOpposingCurVal = (int*)&configInfo->widthCur;
+								}
+							case IDC_TOPSPIN:
+								{
+									hOpposingCtrl = GetDlgItem(hwnd, IDC_HEIGHTSPIN);
+									pVal = &configInfo->cropTop;
+									pOpposingVal = &configInfo->height;
+									pOpposingMinVal = (int*)&configInfo->heightMin;
+									pOpposingMaxVal = (int*)&configInfo->heightMax;
+									pOpposingCurVal = (int*)&configInfo->heightCur;
+								}
+							case IDC_WIDTHSPIN:
+								{
+									hOpposingCtrl = GetDlgItem(hwnd, IDC_LEFTSPIN);
+									pVal = &configInfo->width;
+									pOpposingVal = &configInfo->cropLeft;
+								}
+							case IDC_HEIGHTSPIN:
+								{
+									hOpposingCtrl = GetDlgItem(hwnd, IDC_TOPSPIN);
+									pVal = &configInfo->height;
+									pOpposingVal = &configInfo->cropTop;
+								}
+						}
+
+						*pVal = (int)SendMessage(nmh->hwndFrom, UDM_GETPOS32, 0, 0);
+						*pOpposingVal = (int)SendMessage(hOpposingCtrl, UDM_GETPOS32, 0, 0);
+
+						if (configInfo->source && configInfo->source->hRGB)
+							SetCropping(configInfo->source->hRGB, &configInfo->cropLeft, &configInfo->cropTop, &configInfo->cropWidth, &configInfo->cropHeight);
+						
+						if (nmh->idFrom == IDC_LEFTSPIN || nmh->idFrom == IDC_TOPSPIN)
+						{
+							*pOpposingMaxVal = max(*pOpposingMinVal, *pOpposingCurVal - *pVal);
+							if (*pOpposingVal > *pOpposingMaxVal)
+									SendMessage(hOpposingCtrl, UDM_SETPOS32, NULL, *pOpposingMaxVal);
+							SendMessage(hOpposingCtrl, UDM_SETRANGE32, NULL, *pOpposingMaxVal);
+						}
+					}
+				}
+			break;
+			}
+
+		case WM_COMMAND:
             switch(LOWORD(wParam))
             {
 				case IDC_INPUTSOURCE:
@@ -551,14 +617,15 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 					}
 				case IDC_LEFT:
 					{
-						if (HIWORD(wParam) == EN_CHANGE)
+						if (HIWORD(wParam) == EN_CHANGE || HIWORD(wParam) == EN_KILLFOCUS)
 						{
 							ConfigVisionInfo *configInfo = (ConfigVisionInfo*)GetWindowLongPtr(hwnd, DWLP_USER);
 							if ((LONG)configInfo > DWLP_USER)
 							{
 								configInfo->cropLeft = (int)SendMessage(GetDlgItem(hwnd, IDC_LEFTSPIN), UDM_GETPOS32, 0, 0);
 								configInfo->width = (int)SendMessage(GetDlgItem(hwnd, IDC_WIDTHSPIN), UDM_GETPOS32, 0, 0);
-								SendMessage(GetDlgItem(hwnd, IDC_LEFTSPIN), UDM_SETPOS32, NULL, configInfo->cropLeft);
+								if (GetDlgCtrlID(GetFocus()) != IDC_LEFT) // wait for user to finish typing
+									SendMessage(GetDlgItem(hwnd, IDC_LEFTSPIN), UDM_SETPOS32, NULL, configInfo->cropLeft);
 
 								if (configInfo->source && configInfo->source->hRGB)
 									SetCropping(configInfo->source->hRGB, &configInfo->cropLeft, NULL, NULL, NULL);
@@ -573,14 +640,15 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 					}
 				case IDC_TOP:
 					{
-						if (HIWORD(wParam) == EN_CHANGE)
+						if (HIWORD(wParam) == EN_CHANGE || HIWORD(wParam) == EN_KILLFOCUS)
 						{
 							ConfigVisionInfo *configInfo = (ConfigVisionInfo*)GetWindowLongPtr(hwnd, DWLP_USER);
 							if ((LONG)configInfo > DWLP_USER)
 							{
 								configInfo->cropTop = (int)SendMessage(GetDlgItem(hwnd, IDC_TOPSPIN), UDM_GETPOS32, 0, 0);
 								configInfo->height = (int)SendMessage(GetDlgItem(hwnd, IDC_HEIGHTSPIN), UDM_GETPOS32, 0, 0);
-								SendMessage(GetDlgItem(hwnd, IDC_TOPSPIN), UDM_SETPOS32, NULL, configInfo->cropTop);
+								if (GetDlgCtrlID(GetFocus()) != IDC_TOP) // wait for user to finish typing
+									SendMessage(GetDlgItem(hwnd, IDC_TOPSPIN), UDM_SETPOS32, NULL, configInfo->cropTop);
 
 								if (configInfo->source && configInfo->source->hRGB)
 									SetCropping(configInfo->source->hRGB, NULL, &configInfo->cropTop, NULL, NULL);
@@ -595,13 +663,14 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 					}
 				case IDC_WIDTH:
 					{
-						if (HIWORD(wParam) == EN_CHANGE)
+						if (HIWORD(wParam) == EN_CHANGE || HIWORD(wParam) == EN_KILLFOCUS)
 						{
 							ConfigVisionInfo *configInfo = (ConfigVisionInfo*)GetWindowLongPtr(hwnd, DWLP_USER);
 							if ((LONG)configInfo > DWLP_USER)
 							{
 								configInfo->cropWidth = (int)SendMessage(GetDlgItem(hwnd, IDC_WIDTHSPIN), UDM_GETPOS32, 0, 0);
-								SendMessage(GetDlgItem(hwnd, IDC_WIDTHSPIN), UDM_SETPOS32, NULL, configInfo->cropWidth);
+								if (GetDlgCtrlID(GetFocus()) != IDC_WIDTH) // wait for user to finish typing
+									SendMessage(GetDlgItem(hwnd, IDC_WIDTHSPIN), UDM_SETPOS32, NULL, configInfo->cropWidth);
 								if (configInfo->source && configInfo->source->hRGB)
 									SetCropping(configInfo->source->hRGB, NULL, NULL, &configInfo->cropWidth, NULL);
 							}
@@ -610,13 +679,14 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 					}
 				case IDC_HEIGHT:
 					{
-						if (HIWORD(wParam) == EN_CHANGE)
+						if (HIWORD(wParam) == EN_CHANGE || HIWORD(wParam) == EN_KILLFOCUS)
 						{
 							ConfigVisionInfo *configInfo = (ConfigVisionInfo*)GetWindowLongPtr(hwnd, DWLP_USER);
 							if ((LONG)configInfo > DWLP_USER)
 							{
 								configInfo->cropHeight = (int)SendMessage(GetDlgItem(hwnd, IDC_HEIGHTSPIN), UDM_GETPOS32, 0, 0);
-								SendMessage(GetDlgItem(hwnd, IDC_HEIGHTSPIN), UDM_SETPOS32, NULL, configInfo->cropHeight);
+								if (GetDlgCtrlID(GetFocus()) != IDC_HEIGHT) // wait for user to finish typing
+									SendMessage(GetDlgItem(hwnd, IDC_HEIGHTSPIN), UDM_SETPOS32, NULL, configInfo->cropHeight);
 								if (configInfo->source && configInfo->source->hRGB)
 									SetCropping(configInfo->source->hRGB, NULL, NULL, NULL, &configInfo->cropHeight);
 							}
