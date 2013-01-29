@@ -573,6 +573,8 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 									pOpposingVal = &configInfo->cropTop;
 									break;
 								}
+							default:
+								return 0;
 						}
 
 						*pVal = (int)SendMessage(nmh->hwndFrom, UDM_GETPOS32, 0, 0);
