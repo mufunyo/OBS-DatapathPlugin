@@ -170,6 +170,7 @@ void RGBCBKAPI ModeChanged(HWND hWnd, HRGB hRGB, PRGBMODECHANGEDINFO pModeChange
 	}
 }
 
+// This is where I roll around in my own poo like a content little piggy
 INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch(message)
@@ -546,6 +547,7 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 									pOpposingMinVal = (int*)&configInfo->widthMin;
 									pOpposingMaxVal = (int*)&configInfo->widthMax;
 									pOpposingCurVal = (int*)&configInfo->widthCur;
+									break;
 								}
 							case IDC_TOPSPIN:
 								{
@@ -555,18 +557,21 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 									pOpposingMinVal = (int*)&configInfo->heightMin;
 									pOpposingMaxVal = (int*)&configInfo->heightMax;
 									pOpposingCurVal = (int*)&configInfo->heightCur;
+									break;
 								}
 							case IDC_WIDTHSPIN:
 								{
 									hOpposingCtrl = GetDlgItem(hwnd, IDC_LEFTSPIN);
 									pVal = &configInfo->width;
 									pOpposingVal = &configInfo->cropLeft;
+									break;
 								}
 							case IDC_HEIGHTSPIN:
 								{
 									hOpposingCtrl = GetDlgItem(hwnd, IDC_TOPSPIN);
 									pVal = &configInfo->height;
 									pOpposingVal = &configInfo->cropTop;
+									break;
 								}
 						}
 
