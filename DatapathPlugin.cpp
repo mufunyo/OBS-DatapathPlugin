@@ -738,7 +738,7 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 						if ((LONG)configInfo > DWLP_USER && configInfo->source && configInfo->source->hRGB)
 						{
 							unsigned long width, height;
-							if (customRes)
+							if (!customRes)
 							{
 								RGBGetCaptureWidthDefault(configInfo->source->hRGB, &width);
 								RGBGetCaptureHeightDefault(configInfo->source->hRGB, &height);
@@ -897,10 +897,10 @@ bool STDCALL ConfigureVisionSource(XElement *element, bool bCreating)
 
     ConfigVisionInfo configInfo;
     configInfo.data = data;
-	configInfo.source = (VisionSource*)API->GetSceneImageSource(element->GetName());
+	configInfo.source = (VisionSource*)OBSGetSceneImageSource(element->GetName());
 
 	configInfo.hMutex = OSCreateMutex();
-    if(DialogBoxParam(hinstMain, MAKEINTRESOURCE(IDD_CONFIG), API->GetMainWindow(), ConfigureDialogProc, (LPARAM)&configInfo) == IDOK)
+    if(DialogBoxParam(hinstMain, MAKEINTRESOURCE(IDD_CONFIG), OBSGetMainWindow(), ConfigureDialogProc, (LPARAM)&configInfo) == IDOK)
     {
 		int input = data->GetInt(TEXT("input"));
 		HRGB hRGB;
@@ -958,15 +958,15 @@ bool LoadPlugin()
     if(!pluginLocale->LoadStringFile(TEXT("plugins/DatapathPlugin/locale/en.txt")))
         AppWarning(TEXT("Could not open locale string file '%s'"), TEXT("plugins/DatapathPlugin/locale/en.txt"));
 
-    if(scmpi(API->GetLanguage(), TEXT("en")) != 0)
+    if(scmpi(OBSGetLanguage(), TEXT("en")) != 0)
     {
         String pluginStringFile;
-        pluginStringFile << TEXT("plugins/DatapathPlugin/locale/") << API->GetLanguage() << TEXT(".txt");
+        pluginStringFile << TEXT("plugins/DatapathPlugin/locale/") << OBSGetLanguage() << TEXT(".txt");
         if(!pluginLocale->LoadStringFile(pluginStringFile))
             AppWarning(TEXT("Could not open locale string file '%s'"), pluginStringFile.Array());
     }
 
-    API->RegisterImageSourceClass(DATAPATH_CLASSNAME, PluginStr("ClassName"), (OBSCREATEPROC)CreateVisionSource, (OBSCONFIGPROC)ConfigureVisionSource);
+    OBSRegisterImageSourceClass(DATAPATH_CLASSNAME, PluginStr("ClassName"), (OBSCREATEPROC)CreateVisionSource, (OBSCONFIGPROC)ConfigureVisionSource);
 
     return true;
 

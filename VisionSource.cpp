@@ -35,19 +35,19 @@ bool VisionSource::Init(XElement *data)
 			CreateBitmapInformation(lpBitmapInfo[i], renderCX, renderCY, 32); // bpp hardcoded
 	}
 	XFile file;
-	if (file.Open(API->GetPluginDataPath() << TEXT("\\DatapathPlugin\\nosignal.png"), XFILE_READ, XFILE_OPENEXISTING)) // load user-defined image if available
+	if (file.Open(OBSGetPluginDataPath() << TEXT("\\DatapathPlugin\\nosignal.png"), XFILE_READ, XFILE_OPENEXISTING)) // load user-defined image if available
 	{
 		file.Close();
-		noSignalTex = CreateTextureFromFile(API->GetPluginDataPath() << TEXT("\\DatapathPlugin\\nosignal.png"), TRUE);
+		noSignalTex = CreateTextureFromFile(OBSGetPluginDataPath() << TEXT("\\DatapathPlugin\\nosignal.png"), TRUE);
 	}
 	
 	if (!noSignalTex)
 		noSignalTex = CreateTextureFromFile(TEXT("plugins\\DatapathPlugin\\nosignal.png"), TRUE); // fallback to default image
 
-	if (file.Open(API->GetPluginDataPath() << TEXT("\\DatapathPlugin\\invalidsignal.png"), XFILE_READ, XFILE_OPENEXISTING)) // load user-defined image if available
+	if (file.Open(OBSGetPluginDataPath() << TEXT("\\DatapathPlugin\\invalidsignal.png"), XFILE_READ, XFILE_OPENEXISTING)) // load user-defined image if available
 	{
 		file.Close();
-		invalidSignalTex = CreateTextureFromFile(API->GetPluginDataPath() << TEXT("\\DatapathPlugin\\invalidsignal.png"), TRUE);
+		invalidSignalTex = CreateTextureFromFile(OBSGetPluginDataPath() << TEXT("\\DatapathPlugin\\invalidsignal.png"), TRUE);
 	}
 	
 	if (!invalidSignalTex)
