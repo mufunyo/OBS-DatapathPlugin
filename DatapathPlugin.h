@@ -26,11 +26,19 @@
 
 #include "VisionSource.h"
 #include "resource.h"
+#include "D3D9.h"
+#include "D:\Development\SDKs\Microsoft DirectX SDK (June 2010)\Include\d3dx9.h"
+#ifdef _DEBUG
+#define D3D_DEBUG_INFO
+#endif
+
 
 //-----------------------------------------------------------
 
-extern HINSTANCE hinstMain;
-static HRGBDLL   gHRGBDLL = 0;
+extern HINSTANCE           hinstMain;
+static HRGBDLL             gHRGBDLL = NULL;
+static LPDIRECT3D9EX       gpD3D9 = NULL;
+static LPDIRECT3DDEVICE9EX gpD3D9Device = NULL;
 
 #define RGB_UNKNOWN  0
 #define RGB_565      1

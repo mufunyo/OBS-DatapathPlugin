@@ -356,7 +356,6 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 				scrollInfo.nPos = gainBlue;
 				SetScrollInfo(GetDlgItem(hwnd, IDC_GAINBLUESCROLL), SB_CTL, &scrollInfo, TRUE);
 
-
 				SendMessage(GetDlgItem(hwnd, IDC_ADDRWIDTHSPIN), UDM_SETRANGE32, (int)configInfo->widthMin, (int)configInfo->widthMax);
 				SendMessage(GetDlgItem(hwnd, IDC_ADDRHEIGHTSPIN), UDM_SETRANGE32, (int)configInfo->heightMin, (int)configInfo->heightMax);
 				SendMessage(GetDlgItem(hwnd, IDC_TOPSPIN), UDM_SETRANGE32, configInfo->cropTopMin, configInfo->heightCur);
@@ -953,6 +952,27 @@ bool LoadPlugin()
 	if (RGBERROR_NO_ERROR != RGBLoad(&gHRGBDLL))
 		return false;
 
+	if FAILED(Direct3DCreate9Ex(D3D_SDK_VERSION, &gpD3D9))
+		AppWarning(TEXT("Could not init D3D9Ex"));
+	HWND hwnd = NULL;
+	hwnd = CreateWindow(NULL, NULL, NULL, 0, 0, 32, 32, NULL, NULL, NULL, NULL);
+	D3DPRESENT_PARAMETERS params;
+	params.BackBufferWidth = 32;
+	params.BackBufferHeight = 32;
+	params.BackBufferFormat = D3DFMT_UNKNOWN;
+	params.BackBufferCount = 0;
+	params.MultiSampleType = D3DMULTISAMPLE_NONE;
+	params.MultiSampleQuality = 0;
+	params.SwapEffect = D3DSWAPEFFECT_DISCARD;
+	params.hDeviceWindow = NULL;
+	params.Windowed = TRUE;
+	params.EnableAutoDepthStencil = FALSE;
+	params.Flags = NULL;
+	params.FullScreen_RefreshRateInHz = 0;
+	params.PresentationInterval = D3DPRESENT_INTERVAL_DEFAULT;
+	if FAILED(gpD3D9->CreateDeviceEx(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hwnd, D3DCREATE_HARDWARE_VERTEXPROCESSING | D3DCREATE_MULTITHREADED | D3DCREATE_NOWINDOWCHANGES, &params, NULL, &gpD3D9Device))
+		AppWarning(TEXT("Could not create D3D9 Device"));
+
     pluginLocale = new LocaleStringLookup;
 
     if(!pluginLocale->LoadStringFile(TEXT("plugins/DatapathPlugin/locale/en.txt")))
@@ -975,6 +995,11 @@ bool LoadPlugin()
 
 void UnloadPlugin()
 {
+	if(gpD3D9)
+	{
+		gpD3D9->Release();
+		gpD3D9 = NULL;
+	}
     delete pluginLocale;
 	RGBFree(gHRGBDLL);
 }

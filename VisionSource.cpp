@@ -27,12 +27,23 @@ bool VisionSource::Init(XElement *data)
 
     this->data = data;
     UpdateSettings();
+	format = RGB32;
+
+	LPDIRECT3DTEXTURE9 d3d9tex1 = NULL;
+	LPDIRECT3DTEXTURE9 d3d9tex2 = NULL;
+
+	HRESULT hr;
+	//hr = D3DXCreateTextureFromFileEx(gpD3D9Device, TEXT("E:\\Junk\\gradius640.png"), 640, 480, D3DX_FROM_FILE, D3DUSAGE_DYNAMIC, D3DFMT_R5G6B5, D3DPOOL_DEFAULT, D3DX_FILTER_POINT, D3DX_FILTER_POINT, 0, NULL, NULL, &d3d9tex1);
+	hr = D3DXCreateTextureFromFile(gpD3D9Device, TEXT("E:\\Junk\\gradius640.png"), &d3d9tex1);
+
+	if FAILED(hr)
+		AppWarning(TEXT("Failed to create D3D9Ex texture from file"));
 
 	for (int i = 0; i < NUM_BUFFERS; i++)
 	{
 		lpBitmapInfo[i] = (LPBITMAPINFO)Allocate(sizeof(BITMAPINFOHEADER)+(3*sizeof(DWORD)));
 		if (lpBitmapInfo[i])
-			CreateBitmapInformation(lpBitmapInfo[i], renderCX, renderCY, 32); // bpp hardcoded
+			CreateBitmapInformation(lpBitmapInfo[i], renderCX, renderCY, fmtBpp[format]);
 	}
 	XFile file;
 	if (file.Open(OBSGetPluginDataPath() << TEXT("\\DatapathPlugin\\nosignal.png"), XFILE_READ, XFILE_OPENEXISTING)) // load user-defined image if available
@@ -72,7 +83,6 @@ VisionSource::VisionSource()
 	sharedInfo.data = &data;
 	sharedInfo.hBitmaps = &hBitmaps;
 	sharedInfo.pSignal = &signal;
-	bUseDMA = true; // hardcode for now while toggle is horribly broken
 }
 
 VisionSource::~VisionSource()
@@ -85,12 +95,12 @@ VisionSource::~VisionSource()
 	{
 		for (unsigned long i = 0; i < Buffers; i++)
 		{
-			delete pTextures[i];
+			//delete pTextures[i];
 			//delete noSignalTex;
 			//delete invalidSignalTex; // crash if i try to do this
 			if (!bUseDMA)
 				DeleteObject(hBitmaps[i]);
-			Free(lpBitmapInfo[i]);
+			//Free(lpBitmapInfo[i]);
 		}
 	}
 	OSCloseMutex(sharedInfo.hMutex);
@@ -107,6 +117,41 @@ void VisionSource::Start()
 
     if(bCapturing)
         return;
+
+	UINT pitch;
+	
+	if (bUseDMA)
+		Log(TEXT("VisionSource: Using DMA capture"));
+	else
+		Log(TEXT("VisionSource: Using SSECopy capture"));
+
+	HDC hDC = GetDC(NULL);
+		
+	if (hDC)
+	{
+	// allocate textures
+	for(int i = 0; i < NUM_BUFFERS; i++)
+	{
+		pTextures[i] = CreateTexture(lpBitmapInfo[i]->bmiHeader.biWidth, lpBitmapInfo[i]->bmiHeader.biHeight, convertGSFmt[format], NULL, FALSE, FALSE);
+		if (bUseDMA)
+		{
+			pTextures[i]->Map((BYTE*&)pBitmapBits[i], pitch);
+			lpBitmapInfo[i]->bmiHeader.biSizeImage = pitch*abs(lpBitmapInfo[i]->bmiHeader.biHeight);
+		}
+		else
+		{			
+			hBitmaps[i] = CreateDIBSection(hDC, lpBitmapInfo[i], DIB_RGB_COLORS, &pBitmapBits[i], NULL, 0);
+		}
+
+		if (pTextures[i])
+		{
+			Buffers++;
+		}
+		else
+			AppWarning(TEXT("VisionSource: could not create texture"));
+	}
+	ReleaseDC (NULL, hDC);
+	}
 
 	int input = data->GetInt(TEXT("input"));
 	SIGNALTYPE signalType;
@@ -140,6 +185,9 @@ void VisionSource::Start()
 				RGBSetCropping(hRGB, data->GetInt(TEXT("cropTop")), data->GetInt(TEXT("cropLeft")), data->GetInt(TEXT("cropWidth"), 640), data->GetInt(TEXT("cropHeight"), 480));
 				RGBEnableCropping(hRGB, 1);
 			}
+
+			//if (RGBERROR_NO_ERROR != RGBSetPixelFormat(hRGB, RGB_PIXELFORMAT_565))
+			// Log(TEXT("FEHLER"));
 
 			if (RGBERROR_NO_ERROR == RGBSetFrameCapturedFnEx(hRGB, &Receive, (ULONG_PTR)&sharedInfo))
 			{
@@ -176,9 +224,10 @@ void VisionSource::Stop()
 
     if(!bCapturing)
         return;
-
 	if (0 == RGBUseOutputBuffers( hRGB, FALSE ))
+	OSEnterMutex(sharedInfo.hMutex);
 		bCapturing = false;
+	OSLeaveMutex(sharedInfo.hMutex);
 
 	RGBStopCapture(hRGB);
 	RGBCloseInput(hRGB);
@@ -191,34 +240,6 @@ void VisionSource::Stop()
 void VisionSource::BeginScene()
 {
     traceIn(VisionSource::BeginScene);
-	UINT pitch;
-	
-	HDC hDC = GetDC(NULL);
-		
-	if (hDC)
-	{
-	// allocate textures
-	for(int i = 0; i < NUM_BUFFERS; i++)
-	{
-		pTextures[i] = CreateTexture(lpBitmapInfo[i]->bmiHeader.biWidth, lpBitmapInfo[i]->bmiHeader.biHeight, GS_BGR, NULL, FALSE, FALSE);
-		if (bUseDMA)
-		{
-			pTextures[i]->Map((BYTE*&)pBitmapBits[i], pitch);
-			lpBitmapInfo[i]->bmiHeader.biSizeImage = pitch*abs(lpBitmapInfo[i]->bmiHeader.biHeight);
-		}
-		else
-			hBitmaps[i] = CreateDIBSection(hDC, lpBitmapInfo[i], DIB_RGB_COLORS, &pBitmapBits[i], NULL, 0);
-		
-
-		if (pTextures[i])
-		{
-			Buffers++;
-		}
-		else
-			AppWarning(TEXT("VisionSource: could not create texture"));
-	}
-	ReleaseDC (NULL, hDC);
-	}
 
     Start();
 
@@ -258,7 +279,7 @@ void RGBCBKAPI VisionSource::Receive(HWND hWnd, HRGB hRGB, PRGBFRAMEDATA pFrameD
 				frame.pTexture = (*sharedInfo->pTextures)[i];
 				if ((pFrameData->PBitmapInfo->biWidth != (*sharedInfo->pTextures)[i]->Width()) || (pFrameData->PBitmapInfo->biHeight != (*sharedInfo->pTextures)[i]->Height()))
 				{		
-					CreateBitmapInformation((*sharedInfo->lpBitmapInfo)[i], pFrameData->PBitmapInfo->biWidth, pFrameData->PBitmapInfo->biHeight, 32); // bpp hardcoded
+					CreateBitmapInformation((*sharedInfo->lpBitmapInfo)[i], pFrameData->PBitmapInfo->biWidth, pFrameData->PBitmapInfo->biHeight, fmtBpp[(*sharedInfo->pFormat)]);
 					if (!(*sharedInfo->pUseDMA))
 					{
 						HDC hDC = GetDC(NULL);
@@ -301,7 +322,7 @@ void VisionSource::Render(const Vect2 &pos, const Vect2 &size)
 				if (sharedInfo.qFrames.front().bChanged)
 				{
 					delete pTextures[i]; // but won't this cause the framedrop code to try to draw an uninitialised texture?
-					pTextures[i] = CreateTexture(lpBitmapInfo[i]->bmiHeader.biWidth, lpBitmapInfo[i]->bmiHeader.biHeight, GS_BGR, NULL, FALSE, FALSE);
+					pTextures[i] = CreateTexture(lpBitmapInfo[i]->bmiHeader.biWidth, lpBitmapInfo[i]->bmiHeader.biHeight, convertGSFmt[(*sharedInfo.pFormat)], NULL, FALSE, FALSE);
 				}
 
 				if (bUseDMA)
@@ -384,34 +405,35 @@ void VisionSource::UpdateSettings()
 {
     traceIn(VisionSource::UpdateSettings);
 
-	/*bool bNewUseDMA = (data->GetInt(TEXT("useDMA"), 1)!=0);
+	bool bNewUseDMA = (data->GetInt(TEXT("useDMA"), 1)!=0);
 	if(bCapturing && (bUseDMA != bNewUseDMA))
 	{
-		EndScene();
+		Stop();
+		Log(TEXT("Switching capture type on the fly..."));
 		for (int i = 0; i < NUM_BUFFERS; i++)
 		{
-			if (bUseDMA)
+			if (bNewUseDMA)
 			{
-				UINT pitch;
-				DeleteObject(hBitmaps[i]);
-				pTextures[i]->Map((BYTE*&)pBitmapBits[i], pitch);
-				lpBitmapInfo[i]->bmiHeader.biSizeImage = pitch*abs(lpBitmapInfo[i]->bmiHeader.biHeight);
-				Log(TEXT("VisionSource: Using DMA capture"));
+				//UINT pitch;
+				//DeleteObject(hBitmaps[i]);
+				//pTextures[i]->Map((BYTE*&)pBitmapBits[i], pitch);
+				//lpBitmapInfo[i]->bmiHeader.biSizeImage = pitch*abs(lpBitmapInfo[i]->bmiHeader.biHeight);
 			}
 			else
 			{
-				HDC hDC = GetDC(NULL);
+				/*HDC hDC = GetDC(NULL);
 				if (hDC)
 				{
 					hBitmaps[i] = CreateDIBSection(hDC, lpBitmapInfo[i], DIB_RGB_COLORS, &pBitmapBits[i], NULL, 0);
 					ReleaseDC(NULL, hDC);
-					Log(TEXT("VisionSource: Using SSECopy capture"));
-				}
+				}*/
 			}				
 			bUseDMA = bNewUseDMA;
-			BeginScene();
+			Start();
 		}
-	}*/
+	}
+	else
+		bUseDMA = bNewUseDMA;
 
 	int input = data->GetInt(TEXT("input"));
 	int cropping = data->GetInt(TEXT("cropping"));

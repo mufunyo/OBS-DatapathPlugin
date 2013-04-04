@@ -40,6 +40,16 @@ enum SignalState
 	invalid
 };
 
+enum PixelFmt
+{
+	RGB32,
+	RGB16,
+	YUY2
+};
+
+const int fmtBpp[] = { 32, 16, 16 };
+const GSColorFormat convertGSFmt[] = { GS_BGR, GS_B5G6R5, GS_UNKNOWNFORMAT };
+
 struct SharedVisionInfo
 {
 	bool *pCapturing;
@@ -54,6 +64,7 @@ struct SharedVisionInfo
 	HANDLE hMutex;
 	HANDLE hDataMutex;
 	XElement **data;
+	PixelFmt *pFormat;
 };
 
 
@@ -62,6 +73,7 @@ class VisionSource : public ImageSource
 {
     bool				bFlipVertical;
     UINT				renderCX, renderCY;
+	PixelFmt			format;
 
     XElement			*data;
 	Texture				*texture;
