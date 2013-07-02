@@ -291,6 +291,7 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 				configInfo->cropping = configInfo->data->GetInt(TEXT("cropping"), FALSE);
 				configInfo->customRes = configInfo->data->GetInt(TEXT("customRes"), FALSE);
 				configInfo->useDMA = configInfo->data->GetInt(TEXT("useDMA"), TRUE);
+				configInfo->pointFilter = configInfo->data->GetInt(TEXT("pointFilter"), FALSE);
 
 				configInfo->cropTop = min(configInfo->cropTop, (int)configInfo->heightCur);
 				configInfo->cropLeft = min(configInfo->cropLeft, (int)configInfo->widthCur);
@@ -402,6 +403,7 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 				SendMessage(GetDlgItem(hwnd, IDC_CROPPING), BM_SETCHECK, configInfo->cropping, 0);
 				SendMessage(GetDlgItem(hwnd, IDC_CUSTOMRES), BM_SETCHECK, configInfo->customRes, 0);
 				SendMessage(GetDlgItem(hwnd, IDC_USEDMA), BM_SETCHECK, configInfo->useDMA, 0);
+				SendMessage(GetDlgItem(hwnd, IDC_POINTFILTER), BM_SETCHECK, configInfo->pointFilter, 0);
 				EnableWindow(GetDlgItem(hwnd, IDC_ADDRWIDTH), configInfo->customRes);
 				EnableWindow(GetDlgItem(hwnd, IDC_ADDRWIDTHSTATIC), configInfo->customRes);
 				EnableWindow(GetDlgItem(hwnd, IDC_ADDRWIDTHSPIN), configInfo->customRes);
@@ -867,6 +869,9 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 
 						BOOL useDMA = (BOOL)SendMessage(GetDlgItem(hwnd, IDC_USEDMA), BM_GETCHECK, 0, 0);
 						configInfo->data->SetInt(TEXT("useDMA"), useDMA);
+
+						BOOL pointFilter = (BOOL)SendMessage(GetDlgItem(hwnd, IDC_POINTFILTER), BM_GETCHECK, 0, 0);
+						configInfo->data->SetInt(TEXT("pointFilter"), pointFilter);
                     }
 
                 case IDCANCEL:

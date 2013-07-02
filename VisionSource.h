@@ -67,6 +67,7 @@ class VisionSource : public ImageSource
 	Texture				*texture;
     bool				bCapturing;
 	bool				bUseDMA;
+	bool				bPointFilter;
 	LPBITMAPINFO		lpBitmapInfo[NUM_BUFFERS];
 	PVOID				pBitmapBits[NUM_BUFFERS];
 	HBITMAP				hBitmaps[NUM_BUFFERS];
@@ -77,6 +78,7 @@ class VisionSource : public ImageSource
 	SharedVisionInfo	sharedInfo;
 	unsigned long		lastTex;
 	SignalState			signal;
+	SamplerState		*sampler;
 
 public:
     bool Init(XElement *data);

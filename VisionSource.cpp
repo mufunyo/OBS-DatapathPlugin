@@ -52,6 +52,10 @@ bool VisionSource::Init(XElement *data)
 	
 	if (!invalidSignalTex)
 		invalidSignalTex = CreateTextureFromFile(TEXT("plugins\\DatapathPlugin\\invalidsignal.png"), TRUE); // fallback to default image
+
+	SamplerInfo samplerInfo;
+	samplerInfo.filter = GS_FILTER_POINT;
+	sampler = CreateSamplerState(samplerInfo);
 	
 	return true;
 
@@ -251,7 +255,7 @@ void RGBCBKAPI VisionSource::Receive(HWND hWnd, HRGB hRGB, PRGBFRAMEDATA pFrameD
 					BYTE* mappedBuf;
 					UINT pitch;
 					(*sharedInfo->pTextures)[i]->Map(mappedBuf, pitch);
-					SSECopy(mappedBuf, pFrameData->PBitmapBits, (*sharedInfo->pTextures)[i]->Height()*pitch);
+					memcpy(mappedBuf, pFrameData->PBitmapBits, (*sharedInfo->pTextures)[i]->Height()*pitch);
 				}
 				(*sharedInfo->pTextures)[i]->Unmap();
 
@@ -296,7 +300,12 @@ void VisionSource::Render(const Vect2 &pos, const Vect2 &size)
 			{
 				UINT pitch;
 
+				if(bPointFilter)
+					LoadSamplerState(sampler, 0);
+
 				DrawSprite(pTextures[lastTex], 0xFFFFFFFF, pos.x, pos.y, pos.x+size.x, pos.y+size.y);
+				
+				LoadSamplerState(NULL, 0);
 
 				if (sharedInfo.qFrames.front().bChanged)
 				{
@@ -444,6 +453,8 @@ void VisionSource::UpdateSettings()
 		if(cropping)
 			RGBSetCropping(hRGB, data->GetInt(TEXT("cropTop")), data->GetInt(TEXT("cropLeft")), data->GetInt(TEXT("cropWidth"), 640), data->GetInt(TEXT("cropHeight"), 480));
 	}
+	
+	bPointFilter = (data->GetInt(TEXT("pointFilter"), 1)!=0);
 
     traceOut;
 }

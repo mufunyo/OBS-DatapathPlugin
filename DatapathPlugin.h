@@ -56,6 +56,7 @@ struct ConfigVisionInfo
 	BOOL cropping;
 	BOOL customRes;
 	BOOL useDMA;
+	BOOL pointFilter;
 	unsigned long inputs;
 	int input;
 	int width;

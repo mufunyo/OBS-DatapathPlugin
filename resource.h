@@ -92,6 +92,7 @@
 #define IDC_PHASESPIN                   1065
 #define IDC_HORSCALESPIN                1066
 #define IDC_HOROFFSETSPIN               1067
+#define IDC_POINTFILTER                 1068
 
 // Next default values for new objects
 // 
