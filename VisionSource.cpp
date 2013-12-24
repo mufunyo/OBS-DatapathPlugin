@@ -66,7 +66,6 @@ VisionSource::VisionSource()
 {
 	bFlipVertical = true;
 	sharedInfo.pCapturing = &bCapturing;
-	sharedInfo.pUseDMA = &bUseDMA;
 	sharedInfo.pTextures = &pTextures;
 	sharedInfo.lpBitmapInfo = &lpBitmapInfo;
 	sharedInfo.pBitmapBits = &pBitmapBits;
@@ -76,7 +75,6 @@ VisionSource::VisionSource()
 	sharedInfo.data = &data;
 	sharedInfo.hBitmaps = &hBitmaps;
 	sharedInfo.pSignal = &signal;
-	bUseDMA = true; // hardcode for now while toggle is horribly broken
 	lastTex = 0;
 	dropTex = 0;
 }
@@ -94,8 +92,6 @@ VisionSource::~VisionSource()
 			delete pTextures[i];
 			//delete noSignalTex;
 			//delete invalidSignalTex; // crash if i try to do this
-			if (!bUseDMA)
-				DeleteObject(hBitmaps[i]);
 			Free(lpBitmapInfo[i]);
 		}
 	}
@@ -207,14 +203,8 @@ void VisionSource::BeginScene()
 	for(int i = 0; i < NUM_BUFFERS; i++)
 	{
 		pTextures[i] = CreateTexture(lpBitmapInfo[i]->bmiHeader.biWidth, lpBitmapInfo[i]->bmiHeader.biHeight, GS_BGR, NULL, FALSE, FALSE);
-		if (bUseDMA)
-		{
 			pTextures[i]->Map((BYTE*&)pBitmapBits[i], pitch);
 			lpBitmapInfo[i]->bmiHeader.biSizeImage = pitch*abs(lpBitmapInfo[i]->bmiHeader.biHeight);
-		}
-		else
-			hBitmaps[i] = CreateDIBSection(hDC, lpBitmapInfo[i], DIB_RGB_COLORS, &pBitmapBits[i], NULL, 0);
-		
 
 		if (pTextures[i])
 		{
@@ -252,29 +242,12 @@ void RGBCBKAPI VisionSource::Receive(HWND hWnd, HRGB hRGB, PRGBFRAMEDATA pFrameD
 			{
 				CapturedFrame frame;
 
-				if (!(*sharedInfo->pUseDMA))
-				{
-					BYTE* mappedBuf;
-					UINT pitch;
-					(*sharedInfo->pTextures)[i]->Map(mappedBuf, pitch);
-					memcpy(mappedBuf, pFrameData->PBitmapBits, (*sharedInfo->pTextures)[i]->Height()*pitch);
-				}
 				(*sharedInfo->pTextures)[i]->Unmap();
 
 				frame.pTexture = (*sharedInfo->pTextures)[i];
 				if ((pFrameData->PBitmapInfo->biWidth != (*sharedInfo->pTextures)[i]->Width()) || (pFrameData->PBitmapInfo->biHeight != (*sharedInfo->pTextures)[i]->Height()))
 				{		
 					CreateBitmapInformation((*sharedInfo->lpBitmapInfo)[i], pFrameData->PBitmapInfo->biWidth, pFrameData->PBitmapInfo->biHeight, 32); // bpp hardcoded
-					if (!(*sharedInfo->pUseDMA))
-					{
-						HDC hDC = GetDC(NULL);
-						if (hDC)
-						{
-							DeleteObject((*sharedInfo->hBitmaps)[i]);
-							(*sharedInfo->hBitmaps)[i] = CreateDIBSection(hDC, (*sharedInfo->lpBitmapInfo)[i], DIB_RGB_COLORS, &(*sharedInfo->pBitmapBits)[i], NULL, 0);
-							ReleaseDC(NULL, hDC);
-						}
-					}
 					frame.bChanged = true;
 				}
 				else
@@ -315,8 +288,7 @@ void VisionSource::Render(const Vect2 &pos, const Vect2 &size)
 					pTextures[i] = CreateTexture(lpBitmapInfo[i]->bmiHeader.biWidth, lpBitmapInfo[i]->bmiHeader.biHeight, GS_BGR, NULL, FALSE, FALSE);
 				}
 
-				if (bUseDMA)
-					pTextures[i]->Map((BYTE*&)pBitmapBits[i], pitch);
+				pTextures[i]->Map((BYTE*&)pBitmapBits[i], pitch);
 
 				RGBChainOutputBuffer(hRGB, lpBitmapInfo[i], pBitmapBits[i]);
 				dropTex = lastTex;
@@ -395,35 +367,6 @@ void RGBCBKAPI VisionSource::InvalidSignal(HWND hWnd, HRGB hRGB, unsigned long h
 void VisionSource::UpdateSettings()
 {
     traceIn(VisionSource::UpdateSettings);
-
-	/*bool bNewUseDMA = (data->GetInt(TEXT("useDMA"), 1)!=0);
-	if(bCapturing && (bUseDMA != bNewUseDMA))
-	{
-		EndScene();
-		for (int i = 0; i < NUM_BUFFERS; i++)
-		{
-			if (bUseDMA)
-			{
-				UINT pitch;
-				DeleteObject(hBitmaps[i]);
-				pTextures[i]->Map((BYTE*&)pBitmapBits[i], pitch);
-				lpBitmapInfo[i]->bmiHeader.biSizeImage = pitch*abs(lpBitmapInfo[i]->bmiHeader.biHeight);
-				Log(TEXT("VisionSource: Using DMA capture"));
-			}
-			else
-			{
-				HDC hDC = GetDC(NULL);
-				if (hDC)
-				{
-					hBitmaps[i] = CreateDIBSection(hDC, lpBitmapInfo[i], DIB_RGB_COLORS, &pBitmapBits[i], NULL, 0);
-					ReleaseDC(NULL, hDC);
-					Log(TEXT("VisionSource: Using SSECopy capture"));
-				}
-			}				
-			bUseDMA = bNewUseDMA;
-			BeginScene();
-		}
-	}*/
 
 	int input = data->GetInt(TEXT("input"));
 	int cropping = data->GetInt(TEXT("cropping"));

@@ -55,7 +55,6 @@ struct ConfigVisionInfo
 	HRGB hRGB;
 	BOOL cropping;
 	BOOL customRes;
-	BOOL useDMA;
 	BOOL pointFilter;
 	unsigned long inputs;
 	int input;
@@ -81,7 +80,7 @@ struct ConfigVisionInfo
 	unsigned long cropHeightMin;
 };
 
-void CreateBitmapInformation(BITMAPINFO *pBitmapInfo, int width, int height, int bitCount);
+void CreateBitmapInformation(BITMAPINFO *pBitmapInfo, int width, int height, int bitCount, DWORD fourCC = 0);
 void SetCropping(HRGB hRGB, int* pLeft, int* pTop, int* pWidth, int* pHeight);
 void GetModeText(unsigned long input, TSTR string, size_t size);
 static RGBMODECHANGEDFN ModeChanged;

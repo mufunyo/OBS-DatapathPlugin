@@ -42,10 +42,18 @@ enum SignalState
 	invalid
 };
 
+enum PixelFmt
+{
+	RGB32,
+	RGB16,
+	YUY2,
+	NV12, // unused for now
+	Y8
+};
+
 struct SharedVisionInfo
 {
 	bool *pCapturing;
-	bool *pUseDMA;
 	Texture *(*pTextures)[NUM_BUFFERS];
 	LPBITMAPINFO (*lpBitmapInfo)[NUM_BUFFERS];
 	HBITMAP (*hBitmaps)[NUM_BUFFERS];
@@ -68,7 +76,6 @@ class VisionSource : public ImageSource
     XElement			*data;
 	Texture				*texture;
     bool				bCapturing;
-	bool				bUseDMA;
 	bool				bPointFilter;
 	LPBITMAPINFO		lpBitmapInfo[NUM_BUFFERS];
 	PVOID				pBitmapBits[NUM_BUFFERS];

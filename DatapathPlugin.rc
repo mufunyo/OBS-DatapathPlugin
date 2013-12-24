@@ -89,7 +89,6 @@ BEGIN
     LTEXT           "Height",IDC_HEIGHTSTATIC,96,122,22,8
     EDITTEXT        IDC_HEIGHT,120,120,44,14,ES_AUTOHSCROLL | ES_NUMBER
     CONTROL         "Spin1",IDC_HEIGHTSPIN,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS | UDS_NOTHOUSANDS,153,120,11,14
-    CONTROL         "Use hardware accelerated capture",IDC_USEDMA,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,169,127,10
     CONTROL         "Remember last used settings on mode change",IDC_CROPPING3,
                     "Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,7,186,163,10
     GROUPBOX        "Geometry Adjustment",IDC_CAPTSETTINGS,186,3,205,87,WS_GROUP

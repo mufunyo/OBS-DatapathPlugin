@@ -61,8 +61,8 @@ D3D9Texture* D3D9Context::CreateTextureFromBuffer(unsigned int width, unsigned i
 {
 	HRESULT hr;
 	D3D9Texture *texture = new D3D9Texture(width, height);
-	void *pMap;
-	INT pitch;
+	void *pMap = NULL;
+	INT pitch = 0;
 
 	hr = pD3D9Device->CreateOffscreenPlainSurface(width, height, format, D3DPOOL_DEFAULT, &texture->surface, NULL);
 	texture->Map(pMap, pitch);

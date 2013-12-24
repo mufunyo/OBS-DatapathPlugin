@@ -31,42 +31,45 @@ HINSTANCE hinstMain = NULL;
 
 #define DATAPATH_CLASSNAME TEXT("DatapathCapture")
 
-void CreateBitmapInformation(BITMAPINFO *pBitmapInfo, int width, int height, int bitCount)
+void CreateBitmapInformation(BITMAPINFO *pBitmapInfo, int width, int height, int bitCount, DWORD fourCC)
 {
-   pBitmapInfo->bmiHeader.biWidth          = width;
-   pBitmapInfo->bmiHeader.biHeight         = height;
-   pBitmapInfo->bmiHeader.biBitCount       = bitCount;
-   pBitmapInfo->bmiHeader.biSize           = sizeof(BITMAPINFOHEADER);
-   pBitmapInfo->bmiHeader.biPlanes         = 1;
-   pBitmapInfo->bmiHeader.biCompression    = BI_BITFIELDS;
-   pBitmapInfo->bmiHeader.biSizeImage      = 0;
-   pBitmapInfo->bmiHeader.biXPelsPerMeter  = 3000;
-   pBitmapInfo->bmiHeader.biYPelsPerMeter  = 3000;
-   pBitmapInfo->bmiHeader.biClrUsed        = 0;
-   pBitmapInfo->bmiHeader.biClrImportant   = 0;
-   pBitmapInfo->bmiHeader.biSizeImage      = width * height * bitCount / 8 ;
+	pBitmapInfo->bmiHeader.biWidth          = width;
+	pBitmapInfo->bmiHeader.biHeight				= height;
+	pBitmapInfo->bmiHeader.biBitCount			= bitCount;
+	pBitmapInfo->bmiHeader.biSize				= sizeof(BITMAPINFOHEADER);
+	pBitmapInfo->bmiHeader.biPlanes				= 1;
+	pBitmapInfo->bmiHeader.biCompression		= fourCC ? fourCC : BI_BITFIELDS;
+	pBitmapInfo->bmiHeader.biSizeImage			= 0;
+	pBitmapInfo->bmiHeader.biXPelsPerMeter		= 3000;
+	pBitmapInfo->bmiHeader.biYPelsPerMeter		= 3000;
+	pBitmapInfo->bmiHeader.biClrUsed			= 0;
+	pBitmapInfo->bmiHeader.biClrImportant		= 0;
+	pBitmapInfo->bmiHeader.biSizeImage			= width * height * bitCount / 8 ;
 
-   switch ( bitCount )
-   {
-      case 16:
-      {
-         memcpy ( &pBitmapInfo->bmiColors, &ColourMasks[RGB_565], 
-               sizeof(ColourMasks[RGB_565]) );
-         break;
-      }
-      case 32:
-      {
-         memcpy ( &pBitmapInfo->bmiColors, &ColourMasks[RGB_888], 
-               sizeof(ColourMasks[RGB_888]) );
-         break;
-      }
-      default:
-      {
-         memcpy ( &pBitmapInfo->bmiColors, &ColourMasks[RGB_UNKNOWN], 
-               sizeof(ColourMasks[RGB_UNKNOWN]) );
-      }
+	if(!fourCC)
+		bitCount = INT_MAX;
+
+	   switch ( bitCount )
+	   {
+		  case 16:
+		  {
+			 memcpy ( &pBitmapInfo->bmiColors, &ColourMasks[RGB_565], 
+				   sizeof(ColourMasks[RGB_565]) );
+			 break;
+		  }
+		  case 32:
+		  {
+			 memcpy ( &pBitmapInfo->bmiColors, &ColourMasks[RGB_888], 
+				   sizeof(ColourMasks[RGB_888]) );
+			 break;
+		  }
+		  default:
+		  {
+			 memcpy ( &pBitmapInfo->bmiColors, &ColourMasks[RGB_UNKNOWN], 
+				   sizeof(ColourMasks[RGB_UNKNOWN]) );
+		  }
+	   }
    }
-}
 
 void SetCropping(HRGB hRGB, int* pLeft, int* pTop, int* pWidth, int* pHeight)
 {
@@ -290,7 +293,6 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 				configInfo->cropHeight = configInfo->data->GetInt(TEXT("cropHeight"), (int)configInfo->cropHeightCur);
 				configInfo->cropping = configInfo->data->GetInt(TEXT("cropping"), FALSE);
 				configInfo->customRes = configInfo->data->GetInt(TEXT("customRes"), FALSE);
-				configInfo->useDMA = configInfo->data->GetInt(TEXT("useDMA"), TRUE);
 				configInfo->pointFilter = configInfo->data->GetInt(TEXT("pointFilter"), FALSE);
 
 				configInfo->cropTop = min(configInfo->cropTop, (int)configInfo->heightCur);
@@ -402,7 +404,6 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 				SendMessage(GetDlgItem(hwnd, IDC_CONTRASTSCROLL), SBM_SETPOS, contrast, TRUE);
 				SendMessage(GetDlgItem(hwnd, IDC_CROPPING), BM_SETCHECK, configInfo->cropping, 0);
 				SendMessage(GetDlgItem(hwnd, IDC_CUSTOMRES), BM_SETCHECK, configInfo->customRes, 0);
-				SendMessage(GetDlgItem(hwnd, IDC_USEDMA), BM_SETCHECK, configInfo->useDMA, 0);
 				SendMessage(GetDlgItem(hwnd, IDC_POINTFILTER), BM_SETCHECK, configInfo->pointFilter, 0);
 				EnableWindow(GetDlgItem(hwnd, IDC_ADDRWIDTH), configInfo->customRes);
 				EnableWindow(GetDlgItem(hwnd, IDC_ADDRWIDTHSTATIC), configInfo->customRes);
@@ -866,9 +867,6 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 
 						BOOL cropping = (BOOL)SendMessage(GetDlgItem(hwnd, IDC_CROPPING), BM_GETCHECK, 0, 0);
 						configInfo->data->SetInt(TEXT("cropping"), cropping);
-
-						BOOL useDMA = (BOOL)SendMessage(GetDlgItem(hwnd, IDC_USEDMA), BM_GETCHECK, 0, 0);
-						configInfo->data->SetInt(TEXT("useDMA"), useDMA);
 
 						BOOL pointFilter = (BOOL)SendMessage(GetDlgItem(hwnd, IDC_POINTFILTER), BM_GETCHECK, 0, 0);
 						configInfo->data->SetInt(TEXT("pointFilter"), pointFilter);
