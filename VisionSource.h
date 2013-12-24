@@ -25,6 +25,8 @@
 #include <rgberror.h>
 #include <queue>
 
+#include "DX9Crap.h"
+
 #define NUM_BUFFERS 3
 
 struct CapturedFrame
@@ -77,6 +79,7 @@ class VisionSource : public ImageSource
 	unsigned long		Buffers;
 	SharedVisionInfo	sharedInfo;
 	unsigned long		lastTex;
+	unsigned long		dropTex;
 	SignalState			signal;
 	SamplerState		*sampler;
 

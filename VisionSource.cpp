@@ -77,6 +77,8 @@ VisionSource::VisionSource()
 	sharedInfo.hBitmaps = &hBitmaps;
 	sharedInfo.pSignal = &signal;
 	bUseDMA = true; // hardcode for now while toggle is horribly broken
+	lastTex = 0;
+	dropTex = 0;
 }
 
 VisionSource::~VisionSource()
@@ -317,6 +319,7 @@ void VisionSource::Render(const Vect2 &pos, const Vect2 &size)
 					pTextures[i]->Map((BYTE*&)pBitmapBits[i], pitch);
 
 				RGBChainOutputBuffer(hRGB, lpBitmapInfo[i], pBitmapBits[i]);
+				dropTex = lastTex;
 				lastTex = i;
 				break;
 			}
@@ -327,7 +330,7 @@ void VisionSource::Render(const Vect2 &pos, const Vect2 &size)
 	{
 	case active:
 		{ // I DUNNO MAN SEEMS TO WORK FINE
-			DrawSprite(pTextures[lastTex], 0xFFFFFFFF, pos.x, pos.y, pos.x+size.x, pos.y+size.y);
+			DrawSprite(pTextures[dropTex], 0xFFFFFFFF, pos.x, pos.y, pos.x+size.x, pos.y+size.y);
 			break;
 		}
 	case invalid:

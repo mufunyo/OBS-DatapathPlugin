@@ -70,8 +70,8 @@
     <OutDir>$(Configuration)\</OutDir>
     <IntDir>$(Configuration)\</IntDir>
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSDK_IncludePath);D:\Development\Datapath Vision SDK\RGBEASY\INCLUDE</IncludePath>
-    <LibraryPath>$(VCInstallDir)lib;$(VCInstallDir)atlmfc\lib;$(WindowsSDK_LibraryPath_x86);D:\Development\Datapath Vision SDK\RGBEASY\LIB\Win32\Debug</LibraryPath>
+    <IncludePath>$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSDK_IncludePath);D:\Development\Datapath Vision SDK\RGBEASY\INCLUDE;$(DXSDK_DIR)Include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(VCInstallDir)lib;$(VCInstallDir)atlmfc\lib;$(WindowsSDK_LibraryPath_x86);D:\Development\Datapath Vision SDK\RGBEASY\LIB\Win32\Debug;$(DXSDK_DIR)Lib\x86;$(LibraryPath)</LibraryPath>
     <PostBuildEventUseInBuild>false</PostBuildEventUseInBuild>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -86,8 +86,8 @@
     <OutDir>$(Configuration)\</OutDir>
     <IntDir>$(Configuration)\</IntDir>
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSDK_IncludePath);D:\Development\Datapath Vision SDK\RGBEASY\INCLUDE</IncludePath>
-    <LibraryPath>$(VCInstallDir)lib;$(VCInstallDir)atlmfc\lib;$(WindowsSDK_LibraryPath_x86);D:\Development\Datapath Vision SDK\RGBEASY\LIB\Win32\Release</LibraryPath>
+    <IncludePath>$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSDK_IncludePath);D:\Development\Datapath Vision SDK\RGBEASY\INCLUDE;$(DXSDK_DIR)Include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(VCInstallDir)lib;$(VCInstallDir)atlmfc\lib;$(WindowsSDK_LibraryPath_x86);D:\Development\Datapath Vision SDK\RGBEASY\LIB\Win32\Debug;$(DXSDK_DIR)Lib\x86;$(LibraryPath)</LibraryPath>
     <PostBuildEventUseInBuild>false</PostBuildEventUseInBuild>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -114,7 +114,7 @@
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>OBSApi.lib;strmiids.lib;rgbeasy.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>OBSApi.lib;strmiids.lib;rgbeasy.lib;D3D9.lib;D3Dx9d.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>../OBSApi/Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -171,7 +171,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>OBSApi.lib;strmiids.lib;rgbeasy.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>OBSApi.lib;strmiids.lib;rgbeasy.lib;D3D9.lib;D3Dx9.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>../OBSApi/Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -217,10 +217,12 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\DatapathPlugin what is this I don%27t even\DX9Crap.cpp" />
     <ClCompile Include="VisionSource.cpp" />
     <ClCompile Include="DatapathPlugin.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\DatapathPlugin what is this I don%27t even\DX9Crap.h" />
     <ClInclude Include="VisionSource.h" />
     <ClInclude Include="DatapathPlugin.h" />
     <ClInclude Include="resource.h" />
