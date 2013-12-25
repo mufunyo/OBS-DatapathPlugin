@@ -1,6 +1,6 @@
 /********************************************************************************
  Copyright (C) 2012 Hugh Bailey <obs.jim@gmail.com>
- Copyright (C) 2012 Muf <muf@mindflyer.net>
+ Copyright (C) 2012-2013 Muf <muf@mindflyer.net>
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -28,12 +28,6 @@ bool VisionSource::Init(XElement *data)
     this->data = data;
     UpdateSettings();
 
-	for (int i = 0; i < NUM_BUFFERS; i++)
-	{
-		lpBitmapInfo[i] = (LPBITMAPINFO)Allocate(sizeof(BITMAPINFOHEADER)+(3*sizeof(DWORD)));
-		if (lpBitmapInfo[i])
-			CreateBitmapInformation(lpBitmapInfo[i], renderCX, renderCY, 32); // bpp hardcoded
-	}
 	XFile file;
 	if (file.Open(OBSGetPluginDataPath() << TEXT("\\DatapathPlugin\\nosignal.png"), XFILE_READ, XFILE_OPENEXISTING)) // load user-defined image if available
 	{
@@ -67,6 +61,7 @@ VisionSource::VisionSource()
 	bFlipVertical = true;
 	sharedInfo.pCapturing = &bCapturing;
 	sharedInfo.pTextures = &pTextures;
+	sharedInfo.pSharedTextures = &pSharedTextures;
 	sharedInfo.lpBitmapInfo = &lpBitmapInfo;
 	sharedInfo.pBitmapBits = &pBitmapBits;
 	sharedInfo.pBuffers = &Buffers;
@@ -167,7 +162,7 @@ void VisionSource::Start()
 		}
 	}
 	TCHAR warning[255];
-	StringCchPrintf(warning, 255, TEXT("Could not open Vision input %i"), input);
+	StringCchPrintf(warning, 255, TEXT("Could not open Vision input %i"), input+1);
 	AppWarning(warning);
     traceOut;
 }
@@ -193,20 +188,28 @@ void VisionSource::Stop()
 void VisionSource::BeginScene()
 {
     traceIn(VisionSource::BeginScene);
-	UINT pitch;
-	
+
 	HDC hDC = GetDC(NULL);
-		
+
+	for (int i = 0; i < NUM_BUFFERS; i++)
+	{
+		lpBitmapInfo[i] = (LPBITMAPINFO)Allocate(sizeof(BITMAPINFOHEADER)+(3*sizeof(DWORD)));
+		if (lpBitmapInfo[i])
+			CreateBitmapInformation(lpBitmapInfo[i], renderCX, renderCY, pixFmtBpp[pixFormat], pixFmtFCC[pixFormat]);
+	}
+
 	if (hDC)
 	{
 	// allocate textures
+	UINT pitch = 0;
 	for(int i = 0; i < NUM_BUFFERS; i++)
 	{
-		pTextures[i] = CreateTexture(lpBitmapInfo[i]->bmiHeader.biWidth, lpBitmapInfo[i]->bmiHeader.biHeight, GS_BGR, NULL, FALSE, FALSE);
-			pTextures[i]->Map((BYTE*&)pBitmapBits[i], pitch);
-			lpBitmapInfo[i]->bmiHeader.biSizeImage = pitch*abs(lpBitmapInfo[i]->bmiHeader.biHeight);
+		pSharedTextures[i] = gpD3D9->CreateSharedTexture(lpBitmapInfo[i]->bmiHeader.biWidth, lpBitmapInfo[i]->bmiHeader.biHeight);
+		pTextures[i] = gpD3D9->CreateTexture(lpBitmapInfo[i]->bmiHeader.biWidth, lpBitmapInfo[i]->bmiHeader.biHeight, pixFmtD3D[pixFormat]);
+		pTextures[i]->Map(pBitmapBits[i], pitch);
+		lpBitmapInfo[i]->bmiHeader.biSizeImage = pitch*abs(lpBitmapInfo[i]->bmiHeader.biHeight);
 
-		if (pTextures[i])
+		if (pTextures[i] && pSharedTextures[i])
 		{
 			Buffers++;
 		}
@@ -243,11 +246,12 @@ void RGBCBKAPI VisionSource::Receive(HWND hWnd, HRGB hRGB, PRGBFRAMEDATA pFrameD
 				CapturedFrame frame;
 
 				(*sharedInfo->pTextures)[i]->Unmap();
+				gpD3D9->BlitTexture((*sharedInfo->pTextures)[i], (*sharedInfo->pSharedTextures)[i]);
 
-				frame.pTexture = (*sharedInfo->pTextures)[i];
+				frame.pTexture = (*sharedInfo->pSharedTextures)[i];
 				if ((pFrameData->PBitmapInfo->biWidth != (*sharedInfo->pTextures)[i]->Width()) || (pFrameData->PBitmapInfo->biHeight != (*sharedInfo->pTextures)[i]->Height()))
 				{		
-					CreateBitmapInformation((*sharedInfo->lpBitmapInfo)[i], pFrameData->PBitmapInfo->biWidth, pFrameData->PBitmapInfo->biHeight, 32); // bpp hardcoded
+					(*sharedInfo->lpBitmapInfo)[i]->bmiHeader = *pFrameData->PBitmapInfo;
 					frame.bChanged = true;
 				}
 				else
@@ -271,24 +275,29 @@ void VisionSource::Render(const Vect2 &pos, const Vect2 &size)
 	{
 		for (unsigned long i = 0; i < Buffers; i++) // find which texture we have been passed
 		{
-			if (pTextures[i] == sharedInfo.qFrames.front().pTexture)
+			if (pSharedTextures[i] == sharedInfo.qFrames.front().pTexture)
 			{
-				UINT pitch;
+				UINT pitch = 0;
 
 				if(bPointFilter)
 					LoadSamplerState(sampler, 0);
 
-				DrawSprite(pTextures[lastTex], 0xFFFFFFFF, pos.x, pos.y, pos.x+size.x, pos.y+size.y);
-				
+				gpD3D9->Flush();
+				BlendFunction(GS_BLEND_ONE, GS_BLEND_ZERO);
+				DrawSprite(pSharedTextures[lastTex]->GSTexture, 0xFFFFFFFF, pos.x, pos.y, pos.x+size.x, pos.y+size.y);
+				BlendFunction(GS_BLEND_SRCALPHA, GS_BLEND_INVSRCALPHA);
+
 				LoadSamplerState(NULL, 0);
 
 				if (sharedInfo.qFrames.front().bChanged)
 				{
-					delete pTextures[i]; // but won't this cause the framedrop code to try to draw an uninitialised texture?
-					pTextures[i] = CreateTexture(lpBitmapInfo[i]->bmiHeader.biWidth, lpBitmapInfo[i]->bmiHeader.biHeight, GS_BGR, NULL, FALSE, FALSE);
+					delete pTextures[i];
+					delete pSharedTextures[i];
+					pSharedTextures[i] = gpD3D9->CreateSharedTexture(lpBitmapInfo[i]->bmiHeader.biWidth, lpBitmapInfo[i]->bmiHeader.biHeight);
+					pTextures[i] = gpD3D9->CreateTexture(lpBitmapInfo[i]->bmiHeader.biWidth, lpBitmapInfo[i]->bmiHeader.biHeight, pixFmtD3D[pixFormat]);
 				}
 
-				pTextures[i]->Map((BYTE*&)pBitmapBits[i], pitch);
+				pTextures[i]->Map(pBitmapBits[i], pitch);
 
 				RGBChainOutputBuffer(hRGB, lpBitmapInfo[i], pBitmapBits[i]);
 				dropTex = lastTex;
@@ -301,8 +310,8 @@ void VisionSource::Render(const Vect2 &pos, const Vect2 &size)
 	else switch(signal)
 	{
 	case active:
-		{ // I DUNNO MAN SEEMS TO WORK FINE
-			DrawSprite(pTextures[dropTex], 0xFFFFFFFF, pos.x, pos.y, pos.x+size.x, pos.y+size.y);
+		{
+			DrawSprite(pSharedTextures[dropTex]->GSTexture, 0xFFFFFFFF, pos.x, pos.y, pos.x+size.x, pos.y+size.y);
 			break;
 		}
 	case invalid:
@@ -401,6 +410,7 @@ void VisionSource::UpdateSettings()
 	}
 	
 	bPointFilter = (data->GetInt(TEXT("pointFilter"), 1)!=0);
+	pixFormat = (PixelFmt)data->GetInt(TEXT("pixFormat"), 0);
 
     traceOut;
 }

@@ -35,6 +35,16 @@ void D3D9Texture::Unmap()
 		AppWarning(TEXT("D3D9Texture::Unmap: UnlockRect failed, result = 0x%08lX"), hr);
 }
 
+DWORD D3D9Texture::Width() const
+{
+	return width;
+}
+
+DWORD D3D9Texture::Height() const
+{
+	return height;
+}
+
 D3D9Context::D3D9Context()
 {
 	HRESULT hr;
@@ -55,6 +65,17 @@ D3D9Context::D3D9Context()
 D3D9Context::~D3D9Context()
 {
 
+}
+
+D3D9Texture* D3D9Context::CreateTexture(unsigned int width, unsigned int height, D3DFORMAT format)
+{
+	HRESULT hr;
+	D3D9Texture *texture = new D3D9Texture(width, height);
+
+	if FAILED(hr = pD3D9Device->CreateOffscreenPlainSurface(width, height, format, D3DPOOL_DEFAULT, &texture->surface, NULL))
+		AppWarning(TEXT("CreateTexture: CreateOffscreenPlainSurface failed, result = 0x%08lX"), hr);
+
+	return texture;
 }
 
 D3D9Texture* D3D9Context::CreateTextureFromBuffer(unsigned int width, unsigned int height, D3DFORMAT format, void *buffer, size_t bufSize)

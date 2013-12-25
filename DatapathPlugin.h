@@ -1,6 +1,6 @@
 /********************************************************************************
  Copyright (C) 2012 Hugh Bailey <obs.jim@gmail.com>
- Copyright (C) 2012 Muf <muf@mindflyer.net>
+ Copyright (C) 2012-2013 Muf <muf@mindflyer.net>
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -29,8 +29,9 @@
 
 //-----------------------------------------------------------
 
-extern HINSTANCE hinstMain;
-static HRGBDLL   gHRGBDLL = 0;
+extern HINSTANCE	hinstMain;
+extern D3D9Context	*gpD3D9;
+static HRGBDLL		gHRGBDLL = 0;
 
 #define RGB_UNKNOWN  0
 #define RGB_565      1
@@ -56,6 +57,7 @@ struct ConfigVisionInfo
 	BOOL cropping;
 	BOOL customRes;
 	BOOL pointFilter;
+	PixelFmt pixFormat;
 	unsigned long inputs;
 	int input;
 	int width;
@@ -80,7 +82,7 @@ struct ConfigVisionInfo
 	unsigned long cropHeightMin;
 };
 
-void CreateBitmapInformation(BITMAPINFO *pBitmapInfo, int width, int height, int bitCount, DWORD fourCC = 0);
+void CreateBitmapInformation(BITMAPINFO *pBitmapInfo, int width, int height, int bitCount, DWORD fourCC = BI_BITFIELDS);
 void SetCropping(HRGB hRGB, int* pLeft, int* pTop, int* pWidth, int* pHeight);
 void GetModeText(unsigned long input, TSTR string, size_t size);
 static RGBMODECHANGEDFN ModeChanged;

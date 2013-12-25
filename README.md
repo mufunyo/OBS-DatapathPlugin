@@ -40,6 +40,25 @@ Planned features:
 - Prescaling (for 15KHz VGA sources)
 
 Changelog:
+
+20130903
+- fix the bug where dropped frames would jump back in time
+
+20130702
+- implement point filtering
+
+20130316
+- partially fix broken toggle for DMA capture (toggling while capturing is still broken)
+
+20130228
+- refactor config slightly
+- implement picture adjustments
+ - vile, smelly code that I am in no way proud of :(
+- validate textbox after losing focus only to prevent interference while typing a new value
+- fix tab order
+- prevent crash in unhandled UDN_DELTAPOS
+- migrate to C-style API
+
 20130114
 - finally fix DMA capture!
    - should be configurable but is broken so hardcoded for now

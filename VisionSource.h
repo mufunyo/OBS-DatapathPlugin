@@ -1,6 +1,6 @@
 /********************************************************************************
  Copyright (C) 2012 Hugh Bailey <obs.jim@gmail.com>
- Copyright (C) 2012 Muf <muf@mindflyer.net>
+ Copyright (C) 2012-2013 Muf <muf@mindflyer.net>
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -31,7 +31,7 @@
 
 struct CapturedFrame
 {
-	Texture* pTexture;
+	D3D9SharedTexture *pTexture;
 	bool bChanged;
 };
 
@@ -45,16 +45,22 @@ enum SignalState
 enum PixelFmt
 {
 	RGB32,
+	RGB24,
 	RGB16,
 	YUY2,
 	NV12, // unused for now
 	Y8
 };
 
+const int pixFmtBpp[] = { 32, 24, 16, 16, 12, 8 };
+const DWORD pixFmtFCC[] = { BI_BITFIELDS, BI_BITFIELDS, BI_BITFIELDS, '2YUY', '21VN', '008Y' };
+const D3DFORMAT pixFmtD3D[] = { D3DFMT_X8R8G8B8, D3DFMT_R8G8B8, D3DFMT_R5G6B5, D3DFMT_YUY2, (D3DFORMAT)'21VN', D3DFMT_L8 };
+
 struct SharedVisionInfo
 {
 	bool *pCapturing;
-	Texture *(*pTextures)[NUM_BUFFERS];
+	D3D9Texture *(*pTextures)[NUM_BUFFERS];
+	D3D9SharedTexture *(*pSharedTextures)[NUM_BUFFERS];
 	LPBITMAPINFO (*lpBitmapInfo)[NUM_BUFFERS];
 	HBITMAP (*hBitmaps)[NUM_BUFFERS];
 	PVOID (*pBitmapBits)[NUM_BUFFERS];
@@ -74,13 +80,13 @@ class VisionSource : public ImageSource
     UINT				renderCX, renderCY;
 
     XElement			*data;
-	Texture				*texture;
     bool				bCapturing;
 	bool				bPointFilter;
 	LPBITMAPINFO		lpBitmapInfo[NUM_BUFFERS];
 	PVOID				pBitmapBits[NUM_BUFFERS];
 	HBITMAP				hBitmaps[NUM_BUFFERS];
-	Texture				*pTextures[NUM_BUFFERS];
+	D3D9Texture			*pTextures[NUM_BUFFERS];
+	D3D9SharedTexture	*pSharedTextures[NUM_BUFFERS];
 	Texture				*noSignalTex;
 	Texture				*invalidSignalTex;
 	unsigned long		Buffers;
@@ -89,6 +95,7 @@ class VisionSource : public ImageSource
 	unsigned long		dropTex;
 	SignalState			signal;
 	SamplerState		*sampler;
+	PixelFmt			pixFormat;
 
 public:
     bool Init(XElement *data);

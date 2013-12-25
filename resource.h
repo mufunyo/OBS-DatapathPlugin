@@ -63,6 +63,8 @@
 #define IDC_DETECTEDMODE                1038
 #define IDC_CROPPINGOFF                 1039
 #define IDC_CROPPING2                   1039
+#define IDC_INPUTSOURCE2                1039
+#define IDC_PIXFORMAT                   1039
 #define IDC_TOPSTATIC                   1040
 #define IDC_LEFTSTATIC                  1041
 #define IDC_WIDTHSTATIC                 1042
@@ -92,6 +94,7 @@
 #define IDC_HORSCALESPIN                1066
 #define IDC_HOROFFSETSPIN               1067
 #define IDC_POINTFILTER                 1068
+#define IDC_PIXFMTSTATIC                1069
 
 // Next default values for new objects
 // 
@@ -99,7 +102,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        102
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1039
+#define _APS_NEXT_CONTROL_VALUE         1070
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

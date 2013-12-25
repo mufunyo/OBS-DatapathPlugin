@@ -27,7 +27,7 @@ extern "C" __declspec(dllexport) CTSTR GetPluginDescription();
 
 LocaleStringLookup *pluginLocale = NULL;
 HINSTANCE hinstMain = NULL;
-
+D3D9Context *gpD3D9 = NULL;
 
 #define DATAPATH_CLASSNAME TEXT("DatapathCapture")
 
@@ -38,7 +38,7 @@ void CreateBitmapInformation(BITMAPINFO *pBitmapInfo, int width, int height, int
 	pBitmapInfo->bmiHeader.biBitCount			= bitCount;
 	pBitmapInfo->bmiHeader.biSize				= sizeof(BITMAPINFOHEADER);
 	pBitmapInfo->bmiHeader.biPlanes				= 1;
-	pBitmapInfo->bmiHeader.biCompression		= fourCC ? fourCC : BI_BITFIELDS;
+	pBitmapInfo->bmiHeader.biCompression		= fourCC;
 	pBitmapInfo->bmiHeader.biSizeImage			= 0;
 	pBitmapInfo->bmiHeader.biXPelsPerMeter		= 3000;
 	pBitmapInfo->bmiHeader.biYPelsPerMeter		= 3000;
@@ -280,10 +280,23 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 					
 					StringCchPrintf (text, 32, TEXT("%d"), i+1);
 
-					SendMessage (GetDlgItem(hwnd, IDC_INPUTSOURCE), CB_ADDSTRING, (WPARAM)0, (LPARAM)&text);
-					SendMessage (GetDlgItem(hwnd, IDC_INPUTSOURCE), CB_SETITEMDATA , i, (LPARAM)i);
+					SendMessage(GetDlgItem(hwnd, IDC_INPUTSOURCE), CB_ADDSTRING, (WPARAM)0, (LPARAM)&text);
+					SendMessage(GetDlgItem(hwnd, IDC_INPUTSOURCE), CB_SETITEMDATA , i, (LPARAM)i);
 				}
 				SendMessage(GetDlgItem(hwnd, IDC_INPUTSOURCE), CB_SETCURSEL, configInfo->input, 0);
+
+				configInfo->pixFormat = (PixelFmt)configInfo->data->GetInt(TEXT("pixFormat"), 0);
+				SendMessage(GetDlgItem(hwnd, IDC_PIXFORMAT), CB_ADDSTRING, (WPARAM)0, (LPARAM)TEXT("Aligned RGB (32 bits)"));
+				SendMessage(GetDlgItem(hwnd, IDC_PIXFORMAT), CB_SETITEMDATA , 0, (LPARAM)0);
+				SendMessage(GetDlgItem(hwnd, IDC_PIXFORMAT), CB_ADDSTRING, (WPARAM)0, (LPARAM)TEXT("Unaligned RGB (24 bits)"));
+				SendMessage(GetDlgItem(hwnd, IDC_PIXFORMAT), CB_SETITEMDATA , 1, (LPARAM)1);
+				SendMessage(GetDlgItem(hwnd, IDC_PIXFORMAT), CB_ADDSTRING, (WPARAM)0, (LPARAM)TEXT("Reduced-depth RGB (16 bits)"));
+				SendMessage(GetDlgItem(hwnd, IDC_PIXFORMAT), CB_SETITEMDATA , 2, (LPARAM)2);
+				SendMessage(GetDlgItem(hwnd, IDC_PIXFORMAT), CB_ADDSTRING, (WPARAM)0, (LPARAM)TEXT("4:2:2 sampled YUV (16 bits)"));
+				SendMessage(GetDlgItem(hwnd, IDC_PIXFORMAT), CB_SETITEMDATA , 3, (LPARAM)3);
+				SendMessage(GetDlgItem(hwnd, IDC_PIXFORMAT), CB_ADDSTRING, (WPARAM)0, (LPARAM)TEXT("Greyscale (8 bits)"));
+				SendMessage(GetDlgItem(hwnd, IDC_PIXFORMAT), CB_SETITEMDATA , 4, (LPARAM)5);
+				SendMessage(GetDlgItem(hwnd, IDC_PIXFORMAT), CB_SETCURSEL, configInfo->pixFormat, 0);
 
 				configInfo->width = configInfo->data->GetInt(TEXT("resolutionWidth"), (int)configInfo->widthCur);
 				configInfo->height = configInfo->data->GetInt(TEXT("resolutionHeight"), (int)configInfo->heightCur);
@@ -835,6 +848,10 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 						// TODO: check input
                         configInfo->data->SetInt(TEXT("input"), input);
 
+						int pixFormat = (int)SendMessage(GetDlgItem(hwnd, IDC_PIXFORMAT), CB_GETCURSEL, 0, 0);
+						// TODO: check input
+                        configInfo->data->SetInt(TEXT("pixFormat"), pixFormat);
+
 						BOOL customRes = (BOOL)SendMessage(GetDlgItem(hwnd, IDC_CUSTOMRES), BM_GETCHECK, 0, 0);
 						configInfo->data->SetInt(TEXT("customRes"), customRes);
 
@@ -955,6 +972,7 @@ bool LoadPlugin()
 
 	if (RGBERROR_NO_ERROR != RGBLoad(&gHRGBDLL))
 		return false;
+	gpD3D9 = new D3D9Context();
 
     pluginLocale = new LocaleStringLookup;
 
