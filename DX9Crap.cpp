@@ -18,11 +18,11 @@
 
 #include "DX9Crap.h"
 
-void D3D9Texture::Map(void *lpData, INT pitch)
+void D3D9Texture::Map(void *&lpData, INT pitch)
 {
 	HRESULT hr;
 	D3DLOCKED_RECT lockedRect;
-	if FAILED(hr = surface->LockRect(&lockedRect, NULL, NULL))
+	if FAILED(hr = surface->LockRect(&lockedRect, NULL, D3DLOCK_NOSYSLOCK))
 		AppWarning(TEXT("D3D9Texture::Map: LockRect failed, result = 0x%08lX"), hr);
 	lpData = lockedRect.pBits;
 	pitch = lockedRect.Pitch;
@@ -161,6 +161,11 @@ void D3D9Context::BlitTexture(D3D9Texture *source, D3D9Texture *destination)
 void D3D9Context::Flush()
 {
 	pD3D9Device->Present(NULL, NULL, NULL, NULL);
+}
+
+bool D3D9Context::CheckFormat(D3DFORMAT format)
+{
+	return SUCCEEDED(pD3D9->CheckDeviceFormatConversion(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, format, D3DFMT_A8R8G8B8));
 }
 
 D3D9Texture::D3D9Texture(unsigned int width, unsigned int height)

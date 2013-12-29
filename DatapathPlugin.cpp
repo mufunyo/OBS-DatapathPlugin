@@ -31,45 +31,23 @@ D3D9Context *gpD3D9 = NULL;
 
 #define DATAPATH_CLASSNAME TEXT("DatapathCapture")
 
-void CreateBitmapInformation(BITMAPINFO *pBitmapInfo, int width, int height, int bitCount, DWORD fourCC)
+void CreateBitmapInformation(BITMAPINFO *pBitmapInfo, int width, int height, PixelFmt pixFormat)
 {
-	pBitmapInfo->bmiHeader.biWidth          = width;
+	pBitmapInfo->bmiHeader.biWidth				= width;
 	pBitmapInfo->bmiHeader.biHeight				= height;
-	pBitmapInfo->bmiHeader.biBitCount			= bitCount;
+	pBitmapInfo->bmiHeader.biBitCount			= pixFmtBpp[pixFormat];
 	pBitmapInfo->bmiHeader.biSize				= sizeof(BITMAPINFOHEADER);
 	pBitmapInfo->bmiHeader.biPlanes				= 1;
-	pBitmapInfo->bmiHeader.biCompression		= fourCC;
+	pBitmapInfo->bmiHeader.biCompression		= pixFmtFCC[pixFormat];
 	pBitmapInfo->bmiHeader.biSizeImage			= 0;
 	pBitmapInfo->bmiHeader.biXPelsPerMeter		= 3000;
 	pBitmapInfo->bmiHeader.biYPelsPerMeter		= 3000;
 	pBitmapInfo->bmiHeader.biClrUsed			= 0;
 	pBitmapInfo->bmiHeader.biClrImportant		= 0;
-	pBitmapInfo->bmiHeader.biSizeImage			= width * height * bitCount / 8 ;
+	pBitmapInfo->bmiHeader.biSizeImage			= width * height * pixFmtBpp[pixFormat] / 8 ;
 
-	if(!fourCC)
-		bitCount = INT_MAX;
-
-	   switch ( bitCount )
-	   {
-		  case 16:
-		  {
-			 memcpy ( &pBitmapInfo->bmiColors, &ColourMasks[RGB_565], 
-				   sizeof(ColourMasks[RGB_565]) );
-			 break;
-		  }
-		  case 32:
-		  {
-			 memcpy ( &pBitmapInfo->bmiColors, &ColourMasks[RGB_888], 
-				   sizeof(ColourMasks[RGB_888]) );
-			 break;
-		  }
-		  default:
-		  {
-			 memcpy ( &pBitmapInfo->bmiColors, &ColourMasks[RGB_UNKNOWN], 
-				   sizeof(ColourMasks[RGB_UNKNOWN]) );
-		  }
-	   }
-   }
+	memcpy(&pBitmapInfo->bmiColors, &pixFmtMask[pixFormat], sizeof(pixFmtMask[pixFormat]));
+}
 
 void SetCropping(HRGB hRGB, int* pLeft, int* pTop, int* pWidth, int* pHeight)
 {
@@ -286,16 +264,37 @@ INT_PTR CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 				SendMessage(GetDlgItem(hwnd, IDC_INPUTSOURCE), CB_SETCURSEL, configInfo->input, 0);
 
 				configInfo->pixFormat = (PixelFmt)configInfo->data->GetInt(TEXT("pixFormat"), 0);
-				SendMessage(GetDlgItem(hwnd, IDC_PIXFORMAT), CB_ADDSTRING, (WPARAM)0, (LPARAM)TEXT("Aligned RGB (32 bits)"));
-				SendMessage(GetDlgItem(hwnd, IDC_PIXFORMAT), CB_SETITEMDATA , 0, (LPARAM)0);
-				SendMessage(GetDlgItem(hwnd, IDC_PIXFORMAT), CB_ADDSTRING, (WPARAM)0, (LPARAM)TEXT("Unaligned RGB (24 bits)"));
-				SendMessage(GetDlgItem(hwnd, IDC_PIXFORMAT), CB_SETITEMDATA , 1, (LPARAM)1);
-				SendMessage(GetDlgItem(hwnd, IDC_PIXFORMAT), CB_ADDSTRING, (WPARAM)0, (LPARAM)TEXT("Reduced-depth RGB (16 bits)"));
-				SendMessage(GetDlgItem(hwnd, IDC_PIXFORMAT), CB_SETITEMDATA , 2, (LPARAM)2);
-				SendMessage(GetDlgItem(hwnd, IDC_PIXFORMAT), CB_ADDSTRING, (WPARAM)0, (LPARAM)TEXT("4:2:2 sampled YUV (16 bits)"));
-				SendMessage(GetDlgItem(hwnd, IDC_PIXFORMAT), CB_SETITEMDATA , 3, (LPARAM)3);
-				SendMessage(GetDlgItem(hwnd, IDC_PIXFORMAT), CB_ADDSTRING, (WPARAM)0, (LPARAM)TEXT("Greyscale (8 bits)"));
-				SendMessage(GetDlgItem(hwnd, IDC_PIXFORMAT), CB_SETITEMDATA , 4, (LPARAM)5);
+				int index = 0;
+				if (gpD3D9->CheckFormat(pixFmtD3D[RGB32]))
+				{
+					SendMessage(GetDlgItem(hwnd, IDC_PIXFORMAT), CB_INSERTSTRING, index, (LPARAM)TEXT("Aligned RGB (32 bits)"));
+					SendMessage(GetDlgItem(hwnd, IDC_PIXFORMAT), CB_SETITEMDATA, index, 0);
+					index++;
+				}
+				if (gpD3D9->CheckFormat(pixFmtD3D[RGB24]))
+				{
+					SendMessage(GetDlgItem(hwnd, IDC_PIXFORMAT), CB_INSERTSTRING, index, (LPARAM)TEXT("Unaligned RGB (24 bits)"));
+					SendMessage(GetDlgItem(hwnd, IDC_PIXFORMAT), CB_SETITEMDATA, index, 1);
+					index++;
+				}
+				if (gpD3D9->CheckFormat(pixFmtD3D[RGB16]))
+				{
+					SendMessage(GetDlgItem(hwnd, IDC_PIXFORMAT), CB_INSERTSTRING, index, (LPARAM)TEXT("Reduced-depth RGB (16 bits)"));
+					SendMessage(GetDlgItem(hwnd, IDC_PIXFORMAT), CB_SETITEMDATA, index, 2);
+					index++;
+				}
+				if (gpD3D9->CheckFormat(pixFmtD3D[YUY2]))
+				{
+					SendMessage(GetDlgItem(hwnd, IDC_PIXFORMAT), CB_INSERTSTRING, index, (LPARAM)TEXT("4:2:2 sampled YUV (16 bits)"));
+					SendMessage(GetDlgItem(hwnd, IDC_PIXFORMAT), CB_SETITEMDATA, index, 3);
+					index++;
+				}
+				if (gpD3D9->CheckFormat(pixFmtD3D[Y8]))
+				{
+					SendMessage(GetDlgItem(hwnd, IDC_PIXFORMAT), CB_INSERTSTRING, index, (LPARAM)TEXT("Greyscale (8 bits)"));
+					SendMessage(GetDlgItem(hwnd, IDC_PIXFORMAT), CB_SETITEMDATA, index, 5);
+					index++;
+				}
 				SendMessage(GetDlgItem(hwnd, IDC_PIXFORMAT), CB_SETCURSEL, configInfo->pixFormat, 0);
 
 				configInfo->width = configInfo->data->GetInt(TEXT("resolutionWidth"), (int)configInfo->widthCur);

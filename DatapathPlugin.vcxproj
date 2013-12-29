@@ -112,6 +112,7 @@
       <PrecompiledHeader />
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <ProgramDataBaseFileName>$(Configuration)\$(ProjectName).pdb</ProgramDataBaseFileName>
     </ClCompile>
     <Link>
       <AdditionalDependencies>OBSApi.lib;strmiids.lib;rgbeasy.lib;D3D9.lib;D3Dx9d.lib;%(AdditionalDependencies)</AdditionalDependencies>

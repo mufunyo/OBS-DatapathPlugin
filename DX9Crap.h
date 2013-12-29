@@ -30,11 +30,12 @@ class D3D9Texture
 public:
 	D3D9Texture(unsigned int width, unsigned int height);
 	D3D9Texture();
-    ~D3D9Texture();
-	void Map(void *lpData, INT pitch);
-	void Unmap();
-	DWORD Width() const;
-	DWORD Height() const;
+	~D3D9Texture();
+
+	void					Map(void *&lpData, INT pitch);
+	void					Unmap();
+	DWORD					Width() const;
+	DWORD					Height() const;
 
 	LPDIRECT3DTEXTURE9		texture;
 	LPDIRECT3DSURFACE9		surface;
@@ -60,8 +61,9 @@ public:
 	D3D9Texture				*CreateTextureFromBuffer(unsigned int width, unsigned int height, D3DFORMAT format, void *buffer, size_t bufSize);
 	D3D9Texture				*CreateTextureFromRawFile(unsigned int width, unsigned int height, D3DFORMAT format, CTSTR lpFile);
 	D3D9SharedTexture		*CreateSharedTexture(unsigned int width, unsigned int height);
-	void BlitTexture(D3D9Texture *source, D3D9Texture *destination);
-	void Flush();
+	void					BlitTexture(D3D9Texture *source, D3D9Texture *destination);
+	void					Flush();
+	bool					CheckFormat(D3DFORMAT format);
 
 	HWND					hWnd;
 	LPDIRECT3D9EX			pD3D9;

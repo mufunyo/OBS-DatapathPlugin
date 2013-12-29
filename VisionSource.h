@@ -53,8 +53,20 @@ enum PixelFmt
 };
 
 const int pixFmtBpp[] = { 32, 24, 16, 16, 12, 8 };
-const DWORD pixFmtFCC[] = { BI_BITFIELDS, BI_BITFIELDS, BI_BITFIELDS, '2YUY', '21VN', '008Y' };
+const DWORD pixFmtFCC[] = { BI_BITFIELDS, BI_BITFIELDS, BI_BITFIELDS, '2YUY', '21VN', 'YERG' };
 const D3DFORMAT pixFmtD3D[] = { D3DFMT_X8R8G8B8, D3DFMT_R8G8B8, D3DFMT_R5G6B5, D3DFMT_YUY2, (D3DFORMAT)'21VN', D3DFMT_L8 };
+const struct
+{
+   COLORREF Mask[3];
+}  pixFmtMask[] =
+{
+	{ 0x00ff0000, 0x0000ff00, 0x000000ff, },
+	{ 0x00ff0000, 0x0000ff00, 0x000000ff, },
+	{ 0x0000f800, 0x000007e0, 0x0000001f, },
+	{ 0x00000000, 0x00000000, 0x00000000, },
+	{ 0x00000000, 0x00000000, 0x00000000, },
+	{ 0x00000000, 0x00000000, 0x00000000, },
+};
 
 struct SharedVisionInfo
 {
@@ -70,13 +82,13 @@ struct SharedVisionInfo
 	HANDLE hMutex;
 	HANDLE hDataMutex;
 	XElement **data;
+	bool recvCalled[NUM_BUFFERS];
 };
 
 
 
 class VisionSource : public ImageSource
 {
-    bool				bFlipVertical;
     UINT				renderCX, renderCY;
 
     XElement			*data;

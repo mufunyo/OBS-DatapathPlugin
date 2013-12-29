@@ -58,7 +58,9 @@ bool VisionSource::Init(XElement *data)
 
 VisionSource::VisionSource()
 {
-	bFlipVertical = true;
+	for (int i = 0; i < NUM_BUFFERS; i++)
+		lpBitmapInfo[i] = (LPBITMAPINFO)Allocate(sizeof(BITMAPINFOHEADER)+(3*sizeof(COLORREF)));
+
 	sharedInfo.pCapturing = &bCapturing;
 	sharedInfo.pTextures = &pTextures;
 	sharedInfo.pSharedTextures = &pSharedTextures;
@@ -126,44 +128,65 @@ void VisionSource::Start()
 		default:
 			signal = active;
 	}
+
+	zero(&sharedInfo.recvCalled, sizeof(bool)*NUM_BUFFERS);
 	OSLeaveMutex(sharedInfo.hMutex);
 
-	if (RGBERROR_NO_ERROR == RGBOpenInput(input, &hRGB))
+	unsigned long err = 0;
+
+	err = RGBOpenInput(input, &hRGB);
+	AppWarning(TEXT("VisionSource: Trying to RGBOpenInput, return value 0x%08lX"), err);
+	if (RGBERROR_NO_ERROR == err)
 	{
-		if (RGBERROR_NO_ERROR == RGBSetFrameDropping(hRGB, 0))
+		err = RGBSetFrameDropping(hRGB, 0);
+		AppWarning(TEXT("VisionSource: Trying to RGBSetFrameDropping, return value 0x%08lX"), err);
+		if (RGBERROR_NO_ERROR == err)
 		{
 			if(data->GetInt(TEXT("cropping")))
 			{
+				AppWarning(TEXT("VisionSource: Getting cropping values... yes"));
 				RGBSetCropping(hRGB, data->GetInt(TEXT("cropTop")), data->GetInt(TEXT("cropLeft")), data->GetInt(TEXT("cropWidth"), 640), data->GetInt(TEXT("cropHeight"), 480));
 				RGBEnableCropping(hRGB, 1);
 			}
+			else AppWarning(TEXT("VisionSource: Getting cropping values... no"));
 
-			if (RGBERROR_NO_ERROR == RGBSetFrameCapturedFnEx(hRGB, &Receive, (ULONG_PTR)&sharedInfo))
+			err = RGBSetFrameCapturedFnEx(hRGB, &Receive, (ULONG_PTR)&sharedInfo);
+			AppWarning(TEXT("VisionSource: Trying to RGBSetFrameCapturedFnEx, return value 0x%08lX"), err);
+			if (RGBERROR_NO_ERROR == err)
 			{
 				if (Buffers)
 				{
-				   for (unsigned long i = 0; i < Buffers; i++)
-				   {
-					  if (RGBERROR_NO_ERROR != RGBChainOutputBuffer(hRGB, lpBitmapInfo[i], pBitmapBits[i]))
-						  break;
-				   }
+					AppWarning(TEXT("VisionSource: Checking for allocated buffers... yes"));
+					for (unsigned long i = 0; i < Buffers; i++)
+					{
+						err = RGBChainOutputBuffer(hRGB, lpBitmapInfo[i], pBitmapBits[i]);
+						AppWarning(TEXT("VisionSource: Trying to RGBChainOutputBuffer, return value 0x%08lX"), err);
+						if (RGBERROR_NO_ERROR != err)
+							break;
+					}
 
-				   RGBSetModeChangedFn(hRGB, &ResolutionSwitch, (ULONG_PTR)&sharedInfo);
-				   RGBSetNoSignalFn(hRGB, &NoSignal, (ULONG_PTR)&sharedInfo);
-				   RGBSetInvalidSignalFn(hRGB, &InvalidSignal, (ULONG_PTR)&sharedInfo);
+				   err = RGBSetModeChangedFn(hRGB, &ResolutionSwitch, (ULONG_PTR)&sharedInfo);
+				   AppWarning(TEXT("VisionSource: Trying to RGBSetModeChangedFn, return value 0x%08lX"), err);
+				   err = RGBSetNoSignalFn(hRGB, &NoSignal, (ULONG_PTR)&sharedInfo);
+				   AppWarning(TEXT("VisionSource: Trying to RGBSetNoSignalFn, return value 0x%08lX"), err);
+				   err = RGBSetInvalidSignalFn(hRGB, &InvalidSignal, (ULONG_PTR)&sharedInfo);
+				   AppWarning(TEXT("VisionSource: Trying to RGBSetInvalidSignalFn, return value 0x%08lX"), err);
 
-				   if (RGBERROR_NO_ERROR == RGBUseOutputBuffers(hRGB, TRUE))
+				   err = RGBUseOutputBuffers(hRGB, TRUE);
+				   AppWarning(TEXT("VisionSource: Trying to RGBUseOutputBuffers, return value 0x%08lX"), err);
+				   if (RGBERROR_NO_ERROR == err)
 						bCapturing = true;
 				}
+				else AppWarning(TEXT("VisionSource: Checking for allocated buffers... no"));
 
-				if (RGBERROR_NO_ERROR == RGBStartCapture(hRGB))
+				err = RGBStartCapture(hRGB);
+				AppWarning(TEXT("VisionSource: Trying to RGBStartCapture, return value 0x%08lX"), err);
+				if (RGBERROR_NO_ERROR == err)
 					return;
 			}
 		}
 	}
-	TCHAR warning[255];
-	StringCchPrintf(warning, 255, TEXT("Could not open Vision input %i"), input+1);
-	AppWarning(warning);
+	AppWarning(TEXT("Could not open Vision input %i"), input+1);
     traceOut;
 }
 
@@ -174,7 +197,7 @@ void VisionSource::Stop()
     if(!bCapturing)
         return;
 
-	if (0 == RGBUseOutputBuffers( hRGB, FALSE ))
+	if (RGBERROR_NO_ERROR == RGBUseOutputBuffers(hRGB, FALSE))
 		bCapturing = false;
 
 	RGBStopCapture(hRGB);
@@ -192,11 +215,7 @@ void VisionSource::BeginScene()
 	HDC hDC = GetDC(NULL);
 
 	for (int i = 0; i < NUM_BUFFERS; i++)
-	{
-		lpBitmapInfo[i] = (LPBITMAPINFO)Allocate(sizeof(BITMAPINFOHEADER)+(3*sizeof(DWORD)));
-		if (lpBitmapInfo[i])
-			CreateBitmapInformation(lpBitmapInfo[i], renderCX, renderCY, pixFmtBpp[pixFormat], pixFmtFCC[pixFormat]);
-	}
+			CreateBitmapInformation(lpBitmapInfo[i], renderCX, renderCY, pixFormat);
 
 	if (hDC)
 	{
@@ -243,6 +262,11 @@ void RGBCBKAPI VisionSource::Receive(HWND hWnd, HRGB hRGB, PRGBFRAMEDATA pFrameD
 		{
 			if ((*sharedInfo->pBitmapBits)[i] == pFrameData->PBitmapBits)
 			{
+				if (!sharedInfo->recvCalled[i])
+				{
+					sharedInfo->recvCalled[i] = true;
+					AppWarning(TEXT("VisionSource: Hooray, Receive called on buffer %i!"), i+1);
+				}
 				CapturedFrame frame;
 
 				(*sharedInfo->pTextures)[i]->Unmap();
@@ -409,7 +433,7 @@ void VisionSource::UpdateSettings()
 			RGBSetCropping(hRGB, data->GetInt(TEXT("cropTop")), data->GetInt(TEXT("cropLeft")), data->GetInt(TEXT("cropWidth"), 640), data->GetInt(TEXT("cropHeight"), 480));
 	}
 	
-	bPointFilter = (data->GetInt(TEXT("pointFilter"), 1)!=0);
+	bPointFilter = (!!data->GetInt(TEXT("pointFilter"), 1));
 	pixFormat = (PixelFmt)data->GetInt(TEXT("pixFormat"), 0);
 
     traceOut;

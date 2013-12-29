@@ -33,20 +33,6 @@ extern HINSTANCE	hinstMain;
 extern D3D9Context	*gpD3D9;
 static HRGBDLL		gHRGBDLL = 0;
 
-#define RGB_UNKNOWN  0
-#define RGB_565      1
-#define RGB_888      2
-
-static struct
-{
-   COLORREF Mask[3];
-}  ColourMasks[] =
-{
-   { 0x00000000, 0x00000000, 0x00000000, },  /* Unknown */
-   { 0x0000f800, 0x000007e0, 0x0000001f, },  /* RGB565 */
-   { 0x00ff0000, 0x0000ff00, 0x000000ff, },  /* RGB888 */
-};
-
 struct ConfigVisionInfo
 {
     XElement *data;
@@ -82,7 +68,7 @@ struct ConfigVisionInfo
 	unsigned long cropHeightMin;
 };
 
-void CreateBitmapInformation(BITMAPINFO *pBitmapInfo, int width, int height, int bitCount, DWORD fourCC = BI_BITFIELDS);
+void CreateBitmapInformation(BITMAPINFO *pBitmapInfo, int width, int height, PixelFmt pixFormat);
 void SetCropping(HRGB hRGB, int* pLeft, int* pTop, int* pWidth, int* pHeight);
 void GetModeText(unsigned long input, TSTR string, size_t size);
 static RGBMODECHANGEDFN ModeChanged;
